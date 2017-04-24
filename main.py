@@ -27,7 +27,7 @@ def learn_pattern(phi, expected_output, weights, f, etha):
 
 
 def learn_patterns(phis, expected_outputs):
-    N = 1000000
+    N = 100000
     etha = 0.05
     weights = get_weights(len(phis[0]))
     def f(value):
@@ -39,14 +39,13 @@ def learn_patterns(phis, expected_outputs):
         k = random.randint(0, len(phis)-1)
         weights = learn_pattern(phis[k], expected_outputs[k], weights, f, etha)
     print(weights)
-    print(dot(weights, phis[0]))
-    print(dot(weights, phis[1]))
-    print(dot(weights, phis[2]))
-    print(dot(weights, phis[3]))
+    print(dot(weights, [0.5, -1]))
+    print(dot(weights, [0.65, -1]))
+    print(dot(weights, [0.75, -1]))
 
 
 def main():
-    with open("patrons.txt") as f:
+    with open("patronsDifficult.txt") as f:
         lines = f.readlines()
 
     phis = []

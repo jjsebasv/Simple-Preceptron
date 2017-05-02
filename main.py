@@ -13,6 +13,8 @@ weights = []
 def print_weights():
     global weights
     
+    print(" ")
+    print("*** WEIGHTS ***")
     for layer in weights:
         print('\n'.join([''.join(['{:4} '.format(item) for item in row]) 
         for row in layer]))
@@ -44,7 +46,7 @@ def mapf(arr, f):
 
 def forward(input, layer_index):
     global weights
-    return np.dot(weights[layer_index], [-1] + input)
+    return np.dot(weights[layer_index], input + [-1])
 
 
 def get_outputs(phi, f):
@@ -69,38 +71,53 @@ def back_propagation(outputs, expected_output, f, g):
     small_delta = [0 for i in range(len(weights))]
     small_delta[len(weights) - 1] = np.multiply(mapf(outputs[-1], g), np.subtract(expected_output, last_act_output))
 
+    print(mapf(outputs[-1], g))
+
     for i in reversed(range(1, len(weights))):
         sum_w_d = np.dot(np.transpose(weights[i][0:-1]), small_delta[i])
         small_delta[i - 1] = np.multiply(mapf(outputs[i], g), sum_w_d)
 
+    print("small delta: {}".format(small_delta))
+
     for i in range(len(weights)):
         V = outputs[0] if i == 0 else mapf(outputs[i], f)
-        V = [-1] + V
+        V = V + [-1]
+        print(V)
         big_delta = np.multiply(props.etha, [np.dot(o_val, V) for o_val in small_delta[i]])
-        print(big_delta)
-        print(weights[i])
+        print("big delta: {}".format(big_delta))
         weights[i] = np.add(weights[i], big_delta)   
     print_weights()
 
 
 def learn_pattern(phi, expected_output, f, g):
+    print("weights: {}".format(weights))
+    print("phi: {}".format(phi))
+    print("expected_output: {}".format(expected_output))
     outputs = get_outputs(phi, f)
+    print("outputs: {} ".format(outputs))
     back_propagation(outputs, expected_output, f, g)
 
 
 def learn_patterns(phis, expected_outputs):
     global weights
-    N = 100000
+    N = 2
     init_weights(len(phis[0]), len(expected_outputs[0]))
 
-    def f(value):
-        return 1 if value >= 0 else -1
+    def f(x):
+        return 1 if x >= 0 else 0
 
-    def g(value):
-        return value * (1 - value)
+    def g(x):
+        return x
+
+    # def f(x):
+    #     return 1 / (1 + np.exp(-x))
+
+    # def g(x):
+    #     return x * (1 - x)
 
     for i in range(N):
         k = random.randint(0, len(phis)-1)
+        k = 0 #TODO COMMENT
         learn_pattern(phis[k], expected_outputs[k], f, g)
 
     print(weights)

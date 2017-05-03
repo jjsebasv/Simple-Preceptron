@@ -12,18 +12,18 @@ weights = []
 
 def print_weights():
     global weights
-    
+
     print(" ")
     print("*** WEIGHTS ***")
     for layer in weights:
-        print('\n'.join([''.join(['{:4} '.format(item) for item in row]) 
+        print('\n'.join([''.join(['{:4} '.format(item) for item in row])
         for row in layer]))
         print(" ")
 
 
 def init_weights(input_size, output_size):
     global weights
-    
+
     layer_sizes = []
     layer_sizes.append(input_size)
     layer_sizes += props.hidden_layer_sizes
@@ -32,7 +32,7 @@ def init_weights(input_size, output_size):
     for i in range(1, len(layer_sizes)):
         prev_layer = layer_sizes[i - 1]
         next_layer = layer_sizes[i]
-        weights.append([[random.uniform(-0.5, 0.5) for a in range(prev_layer + 1)] 
+        weights.append([[random.uniform(-0.5, 0.5) for a in range(prev_layer + 1)]
             for b in range(next_layer)])
 
     print(layer_sizes)
@@ -56,9 +56,7 @@ def get_outputs(phi, f):
     outputs.append(phi)
     next_input = phi
     for i in range(len(weights)):
-        if i >= 1:
-            next_input = mapf(next_input, f)
-        next_input = forward(next_input, i)
+        next_input = mapf(forward(next_input, i), f)
         outputs.append(next_input)
     return outputs
 
@@ -67,14 +65,14 @@ def back_propagation(outputs, expected_output, f, g):
     global props
     global weights
 
-    last_act_output = mapf(outputs[-1], f)
     small_delta = [0 for i in range(len(weights))]
-    small_delta[len(weights) - 1] = np.multiply(mapf(outputs[-1], g), np.subtract(expected_output, last_act_output))
+    small_delta[len(weights) - 1] = np.multiply(mapf(outputs[-1], g), np.subtract(expected_output, outputs[-1]))
 
-    print(mapf(outputs[-1], g))
+    # print(mapf(outputs[-1], g))
 
     for i in reversed(range(1, len(weights))):
-        sum_w_d = np.dot(np.transpose(weights[i][0:-1]), small_delta[i])
+        print('Weights[i]: {}'.format(np.transpose(weights[i])))
+        sum_w_d = np.dot(np.transpose(weights[i])[0:-1], small_delta[i])
         small_delta[i - 1] = np.multiply(mapf(outputs[i], g), sum_w_d)
 
     print("small delta: {}".format(small_delta))
@@ -85,7 +83,7 @@ def back_propagation(outputs, expected_output, f, g):
         print(V)
         big_delta = np.multiply(props.etha, [np.dot(o_val, V) for o_val in small_delta[i]])
         print("big delta: {}".format(big_delta))
-        weights[i] = np.add(weights[i], big_delta)   
+        weights[i] = np.add(weights[i], big_delta)
     print_weights()
 
 
@@ -100,24 +98,29 @@ def learn_pattern(phi, expected_output, f, g):
 
 def learn_patterns(phis, expected_outputs):
     global weights
-    N = 2
+    N = 1000
     init_weights(len(phis[0]), len(expected_outputs[0]))
 
-    def f(x):
-        return 1 if x >= 0 else 0
-
-    def g(x):
-        return x
-
+    # def f(x):
+    #     return 1 if x >= 0 else -1
+    #
+    # def g(x):
+    #     return 1
+    #
     # def f(x):
     #     return 1 / (1 + np.exp(-x))
 
     # def g(x):
     #     return x * (1 - x)
 
+    def f(x):
+        return np.tanh(x)
+
+    def g(x):
+        return 1 - x * x
+
     for i in range(N):
         k = random.randint(0, len(phis)-1)
-        k = 0 #TODO COMMENT
         learn_pattern(phis[k], expected_outputs[k], f, g)
 
     print(weights)
@@ -129,6 +132,9 @@ def main():
     with open(props.filename) as f:
         lines = f.readlines()
 
+    def f(x):
+        return np.tanh(x)
+
     phis = []
     expected_outputs = []
     for line in lines:
@@ -138,8 +144,13 @@ def main():
         phis.append(input)
         expected_outputs.append(expected_output)
     #print(phis)
-    #print(expected_outputs)   
+    #print(expected_outputs)
     learn_patterns(phis, expected_outputs)
+
+    print(get_outputs([1, 1], f))
+    print(get_outputs([1, -1], f))
+    print(get_outputs([-1, 1], f))
+    print(get_outputs([-1, -1], f))
 
 
 if __name__ == "__main__":

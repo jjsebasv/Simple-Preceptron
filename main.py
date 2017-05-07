@@ -1,7 +1,8 @@
 #!/usr/bin/python
 
-import random
+import collections
 import numpy as np
+import random
 from properties import Properties
 
 
@@ -10,147 +11,161 @@ props = Properties("config.properties")
 weights = []
 
 
-def print_weights():
-    global weights
+class NeuralNetwork:
 
-    print(" ")
-    print("*** WEIGHTS ***")
-    for layer in weights:
-        print('\n'.join([''.join(['{:4} '.format(item) for item in row])
-        for row in layer]))
-        print(" ")
+    def __init__(self, patterns, etha):
+        self.layers_weights = []
+        self.etha = etha
+        self.input_patterns = patterns
 
+    def init_weights(self, layer_sizes):
+        layer_sizes_len = len(layer_sizes)
 
-def init_weights(input_size, output_size):
-    global weights
+        def random_uniform_list(n):
+            return [random.uniform(-0.5, 0.5) for _ in range(n)]
 
-    layer_sizes = []
-    layer_sizes.append(input_size)
-    layer_sizes += props.hidden_layer_sizes
-    layer_sizes.append(output_size)
+        for i in range(1, layer_sizes_len):
+            prev_layer_size = layer_sizes[i - 1] + 1 # Considering bias node too
+            curr_layer_size = layer_sizes[i]
+            weights = [random_uniform_list(prev_layer_size) for b in range(curr_layer_size)]
+            self.layers_weights.append(weights)
 
-    for i in range(1, len(layer_sizes)):
-        prev_layer = layer_sizes[i - 1]
-        next_layer = layer_sizes[i]
-        weights.append([[random.uniform(-0.5, 0.5) for a in range(prev_layer + 1)]
-            for b in range(next_layer)])
+    def learn_patterns(self, n):
+        def g(x):
+            return np.tanh(x)
 
-    print(layer_sizes)
-    print_weights()
-    print("***")
+        def dg(x):
+            return 1 - x * x
 
+        for _ in range(n):
+            pattern = random.choice(self.input_patterns)
+            self.learn_pattern(pattern, g, dg)
 
-def mapf(arr, f):
-    return [f(x) for x in arr]
+    def learn_pattern(self, pattern, g, dg):
+        outputs = self.get_outputs(pattern.input, g)
+        self.backpropagate(outputs, pattern.expected_output, g, dg)
 
+    def get_outputs(self, input, g):
+        outputs = [input]
+        next_input = input
 
-def forward(input, layer_index):
-    global weights
-    return np.dot(weights[layer_index], input + [-1])
+        for i, weight in enumerate(self.layers_weights):
+            forwarded_values = self.forward(next_input, weight)
+            next_input = [g(x) for x in forwarded_values]
+            outputs.append(next_input)
 
+        return outputs
 
-def get_outputs(phi, f):
-    global weights
+    def forward(self, input, layer_weights):
+        return np.dot(layer_weights, input + [-1])
 
-    outputs = []
-    outputs.append(phi)
-    next_input = phi
-    for i in range(len(weights)):
-        next_input = mapf(forward(next_input, i), f)
-        outputs.append(next_input)
-    return outputs
+    def backpropagate(self, outputs, expected_output, g, dg):
+        layers_weights_len = len(self.layers_weights)
+        small_delta = [0 for _ in self.layers_weights]
+        dgs = [dg(x) for x in outputs[-1]]
+        expected_difference = np.subtract(expected_output, outputs[-1])
+        small_delta[layers_weights_len - 1] = np.multiply(dgs, expected_difference)
 
+        for i in reversed(range(1, layers_weights_len)):
+            sum_w_d = np.dot(np.transpose(self.layers_weights[i])[0:-1], small_delta[i])
+            current_dgs = [dg(x) for x in outputs[i]]
+            small_delta[i - 1] = np.multiply(current_dgs, sum_w_d)
 
-def back_propagation(outputs, expected_output, f, g):
-    global props
-    global weights
+        for i, _ in enumerate(self.layers_weights):
+            V = outputs[0] if i == 0 else [g(x) for x in outputs[i]]
+            V = V + [-1]
+            big_delta = np.multiply(self.etha, [np.dot(o_val, V) for o_val in small_delta[i]])
+            self.layers_weights[i] = np.add(self.layers_weights[i], big_delta)
 
-    small_delta = [0 for i in range(len(weights))]
-    small_delta[len(weights) - 1] = np.multiply(mapf(outputs[-1], g), np.subtract(expected_output, outputs[-1]))
-
-    # print(mapf(outputs[-1], g))
-
-    for i in reversed(range(1, len(weights))):
-        print('Weights[i]: {}'.format(np.transpose(weights[i])))
-        sum_w_d = np.dot(np.transpose(weights[i])[0:-1], small_delta[i])
-        small_delta[i - 1] = np.multiply(mapf(outputs[i], g), sum_w_d)
-
-    print("small delta: {}".format(small_delta))
-
-    for i in range(len(weights)):
-        V = outputs[0] if i == 0 else mapf(outputs[i], f)
-        V = V + [-1]
-        print(V)
-        big_delta = np.multiply(props.etha, [np.dot(o_val, V) for o_val in small_delta[i]])
-        print("big delta: {}".format(big_delta))
-        weights[i] = np.add(weights[i], big_delta)
-    print_weights()
-
-
-def learn_pattern(phi, expected_output, f, g):
-    print("weights: {}".format(weights))
-    print("phi: {}".format(phi))
-    print("expected_output: {}".format(expected_output))
-    outputs = get_outputs(phi, f)
-    print("outputs: {} ".format(outputs))
-    back_propagation(outputs, expected_output, f, g)
-
-
-def learn_patterns(phis, expected_outputs):
-    global weights
-    N = 1000
-    init_weights(len(phis[0]), len(expected_outputs[0]))
-
-    # def f(x):
-    #     return 1 if x >= 0 else -1
-    #
-    # def g(x):
-    #     return 1
-    #
-    # def f(x):
-    #     return 1 / (1 + np.exp(-x))
-
-    # def g(x):
-    #     return x * (1 - x)
-
-    def f(x):
-        return np.tanh(x)
-
-    def g(x):
-        return 1 - x * x
-
-    for i in range(N):
-        k = random.randint(0, len(phis)-1)
-        learn_pattern(phis[k], expected_outputs[k], f, g)
-
-    print(weights)
-
+Pattern = collections.namedtuple('Pattern', ['input', 'expected_output'])
 
 def main():
-    global props
+    props = Properties("config.properties")
 
     with open(props.filename) as f:
         lines = f.readlines()
 
+    patterns = []
+    for line in lines:
+        inputs, expected_outputs = line.split('=')
+        input_values = [float(x) for x in inputs.split()]
+        expected_outputs_values = [float(x) for x in expected_outputs.split()]
+        patterns.append(Pattern(input_values, expected_outputs_values))
+
+    input_size = len(patterns[0].input)
+    output_size = len(patterns[0].expected_output)
+    layers_sizes = [input_size] + props.hidden_layer_sizes + [output_size]
+
+    network = NeuralNetwork(patterns, props.etha)
+    network.init_weights(layers_sizes)
+    network.learn_patterns(10000)
+
+    # Checking that everything works as intended
+
     def f(x):
         return np.tanh(x)
 
-    phis = []
-    expected_outputs = []
-    for line in lines:
-        input = [float(s) for s in line.split("=")[0].split()]
-        expected_output = [float(s) for s in line.split("=")[1].split()]
+    print(network.get_outputs([1, 1], f)[-1])
+    print(network.get_outputs([1, -1], f)[-1])
+    print(network.get_outputs([-1, 1], f)[-1])
+    print(network.get_outputs([-1, -1], f)[-1])
 
-        phis.append(input)
-        expected_outputs.append(expected_output)
-    #print(phis)
-    #print(expected_outputs)
-    learn_patterns(phis, expected_outputs)
-
-    print(get_outputs([1, 1], f))
-    print(get_outputs([1, -1], f))
-    print(get_outputs([-1, 1], f))
-    print(get_outputs([-1, -1], f))
+#
+# def learn_patterns(phis, expected_outputs):
+#     global weights
+#     N = 3000
+#     init_weights(len(phis[0]), len(expected_outputs[0]))
+#
+#     # def f(x):
+#     #     return 1 if x >= 0 else -1
+#     #
+#     # def g(x):
+#     #     return 1
+#     #
+#     # def f(x):
+#     #     return 1 / (1 + np.exp(-x))
+#
+#     # def g(x):
+#     #     return x * (1 - x)
+#
+#     def f(x):
+#         return np.tanh(x)
+#
+#     def g(x):
+#         return 1 - x * x
+#
+#     for i in range(N):
+#         k = random.randint(0, len(phis)-1)
+#         learn_pattern(phis[k], expected_outputs[k], f, g)
+#
+#     print(weights)
+#
+#
+# def main():
+#     global props
+#
+#     with open(props.filename) as f:
+#         lines = f.readlines()
+#
+#     def f(x):
+#         return np.tanh(x)
+#
+#     phis = []
+#     expected_outputs = []
+#     for line in lines:
+#         input = [float(s) for s in line.split("=")[0].split()]
+#         expected_output = [float(s) for s in line.split("=")[1].split()]
+#
+#         phis.append(input)
+#         expected_outputs.append(expected_output)
+#     #print(phis)
+#     #print(expected_outputs)
+#     learn_patterns(phis, expected_outputs)
+#
+#     print(get_outputs([1, 1], f)[-1])
+#     print(get_outputs([1, -1], f)[-1])
+#     print(get_outputs([-1, 1], f)[-1])
+#     print(get_outputs([-1, -1], f)[-1])
 
 
 if __name__ == "__main__":

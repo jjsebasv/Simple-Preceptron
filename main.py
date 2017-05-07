@@ -83,13 +83,15 @@ def main():
     props = Properties("config.properties")
 
     with open(props.filename) as f:
-        lines = f.readlines()
+        lines = f.readlines()[1:]
 
     patterns = []
     for line in lines:
-        inputs, expected_outputs = line.split('=')
-        input_values = [float(x) for x in inputs.split()]
-        expected_outputs_values = [float(x) for x in expected_outputs.split()]
+        aux = line.split()
+        inputs = [aux[0], aux[1]]
+        expected_outputs = [aux[2]]
+        input_values = [float(x) for x in inputs]
+        expected_outputs_values = [float(x) for x in expected_outputs]
         patterns.append(Pattern(input_values, expected_outputs_values))
 
     input_size = len(patterns[0].input)

@@ -73,9 +73,11 @@ class NeuralNetwork:
 
         for i, _ in enumerate(self.layers_weights):
             V = outputs[0] if i == 0 else [g(x) for x in outputs[i]]
-            V = V + [-1]
-            big_delta = np.multiply(self.etha, [np.dot(o_val, V) for o_val in small_delta[i]])
-            self.layers_weights[i] = np.add(self.layers_weights[i], big_delta)
+            V = np.array(V + [-1])
+            V = np.array(V).reshape(len(V), 1)
+            small_delta[i] = np.array(small_delta[i]).reshape(len(small_delta[i]), 1)
+            delta_weight = np.multiply(self.etha, np.dot(small_delta[i], np.transpose(V)))
+            self.layers_weights[i] = np.add(self.layers_weights[i], delta_weight)
 
 Pattern = collections.namedtuple('Pattern', ['input', 'expected_output'])
 

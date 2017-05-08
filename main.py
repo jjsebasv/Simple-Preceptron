@@ -7,8 +7,6 @@ from properties import Properties
 
 
 props = Properties("config.properties")
-#Fila corresponde al output, y columna al input
-weights = []
 
 
 class NeuralNetwork:
@@ -17,6 +15,8 @@ class NeuralNetwork:
         self.layers_weights = []
         self.etha = etha
         self.input_patterns = patterns
+        #Row corresponds to output, and column to input
+        self.weights = []
 
     def init_weights(self, layer_sizes):
         layer_sizes_len = len(layer_sizes)
@@ -27,8 +27,8 @@ class NeuralNetwork:
         for i in range(1, layer_sizes_len):
             prev_layer_size = layer_sizes[i - 1] + 1 # Considering bias node too
             curr_layer_size = layer_sizes[i]
-            weights = [random_uniform_list(prev_layer_size) for b in range(curr_layer_size)]
-            self.layers_weights.append(weights)
+            self.weights = [random_uniform_list(prev_layer_size) for b in range(curr_layer_size)]
+            self.layers_weights.append(self.weights)
 
     def learn_patterns(self, n):
         def g(x):
@@ -115,63 +115,6 @@ def main():
     print(network.get_outputs([1, -1], f)[-1])
     print(network.get_outputs([-1, 1], f)[-1])
     print(network.get_outputs([-1, -1], f)[-1])
-
-#
-# def learn_patterns(phis, expected_outputs):
-#     global weights
-#     N = 3000
-#     init_weights(len(phis[0]), len(expected_outputs[0]))
-#
-#     # def f(x):
-#     #     return 1 if x >= 0 else -1
-#     #
-#     # def g(x):
-#     #     return 1
-#     #
-#     # def f(x):
-#     #     return 1 / (1 + np.exp(-x))
-#
-#     # def g(x):
-#     #     return x * (1 - x)
-#
-#     def f(x):
-#         return np.tanh(x)
-#
-#     def g(x):
-#         return 1 - x * x
-#
-#     for i in range(N):
-#         k = random.randint(0, len(phis)-1)
-#         learn_pattern(phis[k], expected_outputs[k], f, g)
-#
-#     print(weights)
-#
-#
-# def main():
-#     global props
-#
-#     with open(props.filename) as f:
-#         lines = f.readlines()
-#
-#     def f(x):
-#         return np.tanh(x)
-#
-#     phis = []
-#     expected_outputs = []
-#     for line in lines:
-#         input = [float(s) for s in line.split("=")[0].split()]
-#         expected_output = [float(s) for s in line.split("=")[1].split()]
-#
-#         phis.append(input)
-#         expected_outputs.append(expected_output)
-#     #print(phis)
-#     #print(expected_outputs)
-#     learn_patterns(phis, expected_outputs)
-#
-#     print(get_outputs([1, 1], f)[-1])
-#     print(get_outputs([1, -1], f)[-1])
-#     print(get_outputs([-1, 1], f)[-1])
-#     print(get_outputs([-1, -1], f)[-1])
 
 
 if __name__ == "__main__":

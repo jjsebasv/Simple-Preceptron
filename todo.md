@@ -11,9 +11,9 @@
 * ~Tomar todos los patrones en una época~
   * ~Ordenarlos aleatoriamente y tomarlos "en orden"~
 
-* Sumar los `delta_weight` en batch
-  * Guardar los `delta_weight` por input y sumarlos entre si.
-  * Actualizar los pesos de los nodos, para la segunda corrida (con el segundo epoca)
+* ~Sumar los `delta_weight` en batch~
+  * ~Guardar los `delta_weight` por input y sumarlos entre si.~
+  * ~Actualizar los pesos de los nodos, para la segunda corrida (con el segundo epoca)~
 
 * Graficar error de testeo y de entrenamiento (sobre las corridas de epocas)
   * `Sum(1/2N (si - oi)^2)`

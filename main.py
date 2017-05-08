@@ -14,9 +14,13 @@ class NeuralNetwork:
     def __init__(self, patterns, etha):
         # Row corresponds to output, and column to input
         self.layers_weights = []
+        self.saved_weights = None
         self.etha = etha
         self.input_patterns = patterns
         self.delta_weights = []
+        self.prev_delta_weights = []
+        self.prev_sqr_error = 0
+        self.sqr_error = 0
 
     def init_weights(self, layer_sizes):
         layer_sizes_len = len(layer_sizes)
@@ -37,13 +41,48 @@ class NeuralNetwork:
         def dg(x):
             return 1 - x * x
 
-        for _ in range(n):
+        self.prev_delta_weights = [np.zeros(np.shape(layer)) for layer in self.layers_weights]
+        delta_error = 0
+        for epoch in range(n):
+            self.prev_sqr_error = self.sqr_error
+            self.sqr_error = 0
             self.delta_weights = [np.zeros(np.shape(layer)) for layer in self.layers_weights]
+            
             random.shuffle(self.input_patterns)
             for pattern in self.input_patterns:
                 self.learn_pattern(pattern, g, dg)
+            
+            self.sqr_error = self.sqr_error / (2 * len(self.input_patterns))
+            delta_error = self.sqr_error - self.prev_sqr_error
+            
+            if epoch < 5: print("delta error: {}".format(delta_error))
+
+            #Adaptive etha
+            if props.use_adap_etha and epoch % props.epoch_freq == 0:
+                self.etha += self.get_delta_etha(delta_error)
+                if delta_error > 0 and self.saved_weights != None:
+                    self.layers_weights = self.saved_weights
+                    self.prev_delta_weights = [np.zeros(np.shape(layer)) for layer in self.layers_weights]
+                    print("continue: {}, {}".format(delta_error, epoch))
+                    continue
+                else:
+                    self.saved_weights = self.layers_weights
+
+            #print(self.etha)
             for i, _ in enumerate(self.layers_weights):
-                self.layers_weights[i] = np.add(self.layers_weights[i], self.delta_weights[i]) 
+                self.layers_weights[i] = np.add(self.layers_weights[i], self.delta_weights[i])
+                #Momentum
+                if props.use_momentum and delta_error <= 0:
+                    delta_momentum = np.multiply(props.momentum_alpha, self.prev_delta_weights[i])
+                    self.layers_weights[i] = np.add(self.layers_weights[i], delta_momentum)
+            
+            self.prev_delta_weights = self.delta_weights
+
+    def get_delta_etha(self, delta_error):
+        if delta_error <= 0:
+            return props.etha_a
+        else:
+            return -props.etha_b * self.etha
 
     def learn_pattern(self, pattern, g, dg):
         outputs = self.get_outputs(pattern.input, g)
@@ -66,13 +105,15 @@ class NeuralNetwork:
     def backpropagate(self, outputs, expected_output, g, dg):
         layers_weights_len = len(self.layers_weights)
         small_delta = [0 for _ in self.layers_weights]
-        dgs = [dg(x) for x in outputs[-1]]
+        negl = 0.1 if props.use_non_zero_dg else 0
+        dgs = [dg(x) + negl for x in outputs[-1]]
         expected_difference = np.subtract(expected_output, outputs[-1])
+        self.sqr_error += expected_difference ** 2
         small_delta[layers_weights_len - 1] = np.multiply(dgs, expected_difference)
 
         for i in reversed(range(1, layers_weights_len)):
             sum_w_d = np.dot(np.transpose(self.layers_weights[i])[0:-1], small_delta[i])
-            current_dgs = [dg(x) for x in outputs[i]]
+            current_dgs = [dg(x) + negl for x in outputs[i]]
             small_delta[i - 1] = np.multiply(current_dgs, sum_w_d)
 
         for i, _ in enumerate(self.layers_weights):
@@ -81,6 +122,7 @@ class NeuralNetwork:
             #Convert arrays into vector-like matrices
             V = np.array(V).reshape(len(V), 1)
             small_delta[i] = np.array(small_delta[i]).reshape(len(small_delta[i]), 1)
+            print(self.etha)
             layer_delta_weights = np.multiply(self.etha, np.dot(small_delta[i], np.transpose(V)))
             self.delta_weights[i] = np.add(self.delta_weights[i], layer_delta_weights)
 
@@ -114,6 +156,7 @@ def main():
     def f(x):
         return np.tanh(x)
 
+    print(network.layers_weights)
     print(network.get_outputs([1, 1], f)[-1])
     print(network.get_outputs([1, -1], f)[-1])
     print(network.get_outputs([-1, 1], f)[-1])

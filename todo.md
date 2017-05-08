@@ -19,7 +19,9 @@
   * `Sum(1/2N (si - oi)^2)`
 
 * 3 variantes de backpropagation
-* etha adaptativo
+  * etha adaptativo
+  * 0.1
+  * Momentum
 
 * Visualiar salida en capas ocultas
 * Poder elegir la funcion de activacion (`config.properties`)

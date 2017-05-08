@@ -12,11 +12,11 @@ props = Properties("config.properties")
 class NeuralNetwork:
 
     def __init__(self, patterns, etha):
+        # Row corresponds to output, and column to input
         self.layers_weights = []
         self.etha = etha
         self.input_patterns = patterns
-        #Row corresponds to output, and column to input
-        self.weights = []
+        self.delta_weights = []
 
     def init_weights(self, layer_sizes):
         layer_sizes_len = len(layer_sizes)
@@ -27,8 +27,8 @@ class NeuralNetwork:
         for i in range(1, layer_sizes_len):
             prev_layer_size = layer_sizes[i - 1] + 1 # Considering bias node too
             curr_layer_size = layer_sizes[i]
-            self.weights = [random_uniform_list(prev_layer_size) for b in range(curr_layer_size)]
-            self.layers_weights.append(self.weights)
+            weights = [random_uniform_list(prev_layer_size) for b in range(curr_layer_size)]
+            self.layers_weights.append(weights)
 
     def learn_patterns(self, n):
         def g(x):
@@ -38,9 +38,12 @@ class NeuralNetwork:
             return 1 - x * x
 
         for _ in range(n):
+            self.delta_weights = [np.zeros(np.shape(layer)) for layer in self.layers_weights]
             random.shuffle(self.input_patterns)
             for pattern in self.input_patterns:
-                self.learn_pattern(pattern, g, dg) 
+                self.learn_pattern(pattern, g, dg)
+            for i, _ in enumerate(self.layers_weights):
+                self.layers_weights[i] = np.add(self.layers_weights[i], self.delta_weights[i]) 
 
     def learn_pattern(self, pattern, g, dg):
         outputs = self.get_outputs(pattern.input, g)
@@ -78,8 +81,8 @@ class NeuralNetwork:
             #Convert arrays into vector-like matrices
             V = np.array(V).reshape(len(V), 1)
             small_delta[i] = np.array(small_delta[i]).reshape(len(small_delta[i]), 1)
-            delta_weight = np.multiply(self.etha, np.dot(small_delta[i], np.transpose(V)))
-            self.layers_weights[i] = np.add(self.layers_weights[i], delta_weight)
+            layer_delta_weights = np.multiply(self.etha, np.dot(small_delta[i], np.transpose(V)))
+            self.delta_weights[i] = np.add(self.delta_weights[i], layer_delta_weights)
 
 Pattern = collections.namedtuple('Pattern', ['input', 'expected_output'])
 

@@ -74,6 +74,7 @@ class NeuralNetwork:
         for i, _ in enumerate(self.layers_weights):
             V = outputs[0] if i == 0 else [g(x) for x in outputs[i]]
             V = np.array(V + [-1])
+            #Convert arrays into vector-like matrices
             V = np.array(V).reshape(len(V), 1)
             small_delta[i] = np.array(small_delta[i]).reshape(len(small_delta[i]), 1)
             delta_weight = np.multiply(self.etha, np.dot(small_delta[i], np.transpose(V)))

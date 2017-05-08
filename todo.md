@@ -8,8 +8,8 @@
 * Normalizar entrada
 * Normalizar salida
 
-* Tomar todos los patrones en una época
-  * Ordenarlos aleatoriamente y tomarlos "en orden"
+* ~Tomar todos los patrones en una época~
+  * ~Ordenarlos aleatoriamente y tomarlos "en orden"~
 
 * Sumar los `delta_weight` en batch
   * Guardar los `delta_weight` por input y sumarlos entre si.

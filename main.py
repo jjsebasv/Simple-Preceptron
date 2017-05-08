@@ -38,8 +38,9 @@ class NeuralNetwork:
             return 1 - x * x
 
         for _ in range(n):
-            pattern = random.choice(self.input_patterns)
-            self.learn_pattern(pattern, g, dg)
+            random.shuffle(self.input_patterns)
+            for pattern in self.input_patterns:
+                self.learn_pattern(pattern, g, dg) 
 
     def learn_pattern(self, pattern, g, dg):
         outputs = self.get_outputs(pattern.input, g)

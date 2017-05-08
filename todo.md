@@ -2,7 +2,7 @@
 ## En orden de prioridad
 
 * Elegir subconjunto de patrones p/ entrenamiento y el resto para testeo
-  * ~~ porcentual `config.properties`
+  * ~~ porcentual `config.properties` ~~
   * dividir el archivo de entrada en dos --> Entrenamiento y testeo.
 
 * Normalizar entrada

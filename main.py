@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import collections
 import numpy as np
@@ -55,20 +55,16 @@ class NeuralNetwork:
             self.sqr_error = self.sqr_error / (2 * len(self.input_patterns))
             delta_error = self.sqr_error - self.prev_sqr_error
             
-            if epoch < 5: print("delta error: {}".format(delta_error))
-
             #Adaptive etha
             if props.use_adap_etha and epoch % props.epoch_freq == 0:
                 self.etha += self.get_delta_etha(delta_error)
-                if delta_error > 0 and self.saved_weights != None:
+                if delta_error > 0 and random.random() <= props.undo_probability and self.saved_weights != None:
                     self.layers_weights = self.saved_weights
                     self.prev_delta_weights = [np.zeros(np.shape(layer)) for layer in self.layers_weights]
-                    print("continue: {}, {}".format(delta_error, epoch))
                     continue
                 else:
                     self.saved_weights = self.layers_weights
 
-            #print(self.etha)
             for i, _ in enumerate(self.layers_weights):
                 self.layers_weights[i] = np.add(self.layers_weights[i], self.delta_weights[i])
                 #Momentum
@@ -122,7 +118,6 @@ class NeuralNetwork:
             #Convert arrays into vector-like matrices
             V = np.array(V).reshape(len(V), 1)
             small_delta[i] = np.array(small_delta[i]).reshape(len(small_delta[i]), 1)
-            print(self.etha)
             layer_delta_weights = np.multiply(self.etha, np.dot(small_delta[i], np.transpose(V)))
             self.delta_weights[i] = np.add(self.delta_weights[i], layer_delta_weights)
 
@@ -137,8 +132,8 @@ def main():
     patterns = []
     for line in lines:
         aux = line.split()
-        inputs = [aux[0], aux[1]]
-        expected_outputs = [aux[2]]
+        inputs = aux[0:-1]
+        expected_outputs = [aux[-1]]
         input_values = [float(x) for x in inputs]
         expected_outputs_values = [float(x) for x in expected_outputs]
         patterns.append(Pattern(input_values, expected_outputs_values))
@@ -149,7 +144,7 @@ def main():
 
     network = NeuralNetwork(patterns, props.etha)
     network.init_weights(layers_sizes)
-    network.learn_patterns(10000)
+    network.learn_patterns(1000)
 
     # Checking that everything works as intended
 
@@ -161,6 +156,11 @@ def main():
     print(network.get_outputs([1, -1], f)[-1])
     print(network.get_outputs([-1, 1], f)[-1])
     print(network.get_outputs([-1, -1], f)[-1])
+
+    # print(network.get_outputs([0.1], f)[-1])
+    # print(network.get_outputs([0.5], f)[-1])
+    # print(network.get_outputs([0.65], f)[-1])
+    # print(network.get_outputs([0.73], f)[-1])
 
 
 if __name__ == "__main__":

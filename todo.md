@@ -5,8 +5,8 @@
   * ~porcentual `config.properties`~
   * ~dividir el archivo de entrada en dos --> Entrenamiento y testeo.~
 
-* Normalizar entrada
-* Normalizar salida
+* ~Normalizar entrada~
+* ~Normalizar salida~
 
 * ~Tomar todos los patrones en una época~
   * ~Ordenarlos aleatoriamente y tomarlos "en orden"~
@@ -24,8 +24,8 @@
   * ~Momentum~
 
 * Visualiar salida en capas ocultas
-* Poder elegir la funcion de activacion (`config.properties`)
-* Poder agregar una última capa lineal
+* ~Poder elegir la funcion de activacion (`config.properties`)~
+* ~Poder agregar una última capa lineal~
 
 * Inicializar pesos adecuadamente
   *  reconmendado: `sigma(m) = m ^ (-1/2)`

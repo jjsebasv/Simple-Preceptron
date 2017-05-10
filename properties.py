@@ -7,6 +7,8 @@ class Properties:
 		configParser = configparser.RawConfigParser()
 		configParser.read(filename)
 		self.error = float(configParser.get('Algorithm', 'error'))
+		self.function_type = configParser.get('Backpropagation', 'type')
+		self.beta = float(configParser.get('Backpropagation', 'function_beta'))
 		self.etha = float(configParser.get('Backpropagation', 'etha'))
 		self.use_non_zero_dg = configParser.get('Backpropagation', 'non_zero_dg') == "true"
 		self.use_momentum = configParser.get('Backpropagation', 'momentum') == "true"

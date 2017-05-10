@@ -3,7 +3,9 @@
 import collections
 import numpy as np
 import random
+from functools import reduce
 from properties import Properties
+
 
 
 props = Properties("config.properties")
@@ -16,11 +18,47 @@ class NeuralNetwork:
         self.layers_weights = []
         self.saved_weights = None
         self.etha = etha
-        self.input_patterns = patterns
+        self.input_patterns = self.normalize_patterns(patterns)
         self.delta_weights = []
         self.prev_delta_weights = []
         self.prev_sqr_error = 0
         self.sqr_error = 0
+
+    def tanh(self, x):
+        return np.tanh(x * props.beta)
+
+    def sigmoid(self, x):
+        return 1 / (1 + np.exp(-2 * props.beta * x))
+
+    def d_tanh(self, x):
+        return props.beta * (1 - x * x)
+
+    def d_sigmoid(self, x):
+        return 2 * props.beta * x * (1 - x)
+
+    def normalize_patterns(self, patterns):
+        outputs = reduce(lambda x, y: x + y, [pattern.expected_output for pattern in patterns], [])
+        inputs = reduce(lambda x, y: x + y, [pattern.input for pattern in patterns], [])
+        
+        def norm(v, a, b, c, d):
+            return (d - c) * v / (b - a) + d - ((d - c) * b / (b - a)) 
+        
+        o_min = 0.1 if props.function_type == "sigmoid" else -0.8
+        o_max = 0.9 if props.function_type == "sigmoid" else 0.8
+
+        self.norm_input = lambda x: norm(x, min(inputs), max(inputs), -1 , 1)
+                    
+        def norm_output(v):
+            return norm(v, min(outputs), max(outputs), o_min, o_max)
+
+        self.denorm_output = lambda x: norm(x, o_min, o_max, min(outputs), max(outputs))
+
+        norm_patterns = []
+        for pattern in patterns:
+            new_input = [self.norm_input(v) for v in pattern.input]
+            new_output = [norm_output(v) for v in pattern.expected_output]
+            norm_patterns.append(Pattern(new_input, new_output))
+        return norm_patterns
 
     def init_weights(self, layer_sizes):
         layer_sizes_len = len(layer_sizes)
@@ -34,16 +72,25 @@ class NeuralNetwork:
             weights = [random_uniform_list(prev_layer_size) for b in range(curr_layer_size)]
             self.layers_weights.append(weights)
 
-    def learn_patterns(self, n):
-        def g(x):
-            return np.tanh(x)
+    def get_g(self):
+        return self.sigmoid if props.function_type == "sigmoid" else self.tanh
 
-        def dg(x):
-            return 1 - x * x
+    def get_dg(self):
+        return self.d_sigmoid if props.function_type == "sigmoid" else self.d_tanh
+
+    def learn_patterns(self, n):
+        g = self.get_g()
+        dg = self.get_dg()
 
         self.prev_delta_weights = [np.zeros(np.shape(layer)) for layer in self.layers_weights]
         delta_error = 0
         for epoch in range(n):
+            if self.sqr_error < props.error and epoch > 1000:
+                break
+            
+            if epoch % 10 == 0:
+                print("EPOCH {}. error: {}".format(epoch, self.sqr_error))
+
             self.prev_sqr_error = self.sqr_error
             self.sqr_error = 0
             self.delta_weights = [np.zeros(np.shape(layer)) for layer in self.layers_weights]
@@ -95,6 +142,11 @@ class NeuralNetwork:
 
         return outputs
 
+    def get_output(self, pattern):
+        norm_pattern = [self.norm_input(i_val) for i_val in pattern]
+        output = self.get_outputs(norm_pattern, self.get_g())[-1]
+        return [self.denorm_output(o_val) for o_val in output]
+
     def forward(self, input, layer_weights):
         return np.dot(layer_weights, input + [-1])
 
@@ -126,7 +178,7 @@ Pattern = collections.namedtuple('Pattern', ['input', 'expected_output'])
 def main():
     props = Properties("config.properties")
 
-    with open(props.filename) as f:
+    with open(props.training_file) as f:
         lines = f.readlines()[1:]
 
     patterns = []
@@ -144,23 +196,31 @@ def main():
 
     network = NeuralNetwork(patterns, props.etha)
     network.init_weights(layers_sizes)
-    network.learn_patterns(1000)
+    network.learn_patterns(100000)
 
     # Checking that everything works as intended
-
-    def f(x):
-        return np.tanh(x)
-
-    print(network.layers_weights)
-    print(network.get_outputs([1, 1], f)[-1])
-    print(network.get_outputs([1, -1], f)[-1])
-    print(network.get_outputs([-1, 1], f)[-1])
-    print(network.get_outputs([-1, -1], f)[-1])
-
-    # print(network.get_outputs([0.1], f)[-1])
-    # print(network.get_outputs([0.5], f)[-1])
-    # print(network.get_outputs([0.65], f)[-1])
-    # print(network.get_outputs([0.73], f)[-1])
+    if input_size == 2:
+        print(network.get_output([1, 1]))
+        print(network.get_output([1, -1]))
+        print(network.get_output([-1, 1]))
+        print(network.get_output([-1, -1]))
+    else:
+        print(network.get_output([0])) #~0
+        print(network.get_output([0.1])) #~1
+        print(network.get_output([0.3])) #2
+        print(network.get_output([0.4])) #5
+        print(network.get_output([0.45])) #2
+        print(network.get_output([0.475])) #~1
+        print(network.get_output([0.5])) #0
+        print(network.get_output([0.55])) #3
+        print(network.get_output([0.6])) #~20
+        print(network.get_output([0.65])) #~28
+        print(network.get_output([0.7])) #33
+        print(network.get_output([0.75])) #~40
+        print(network.get_output([0.85])) #~45
+        print(network.get_output([0.8])) #50
+        print(network.get_output([0.9])) #78
+        print(network.get_output([1])) #100
 
 
 if __name__ == "__main__":

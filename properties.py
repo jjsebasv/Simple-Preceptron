@@ -10,6 +10,7 @@ class Properties:
 		self.error_freq = float(configParser.get('Error', 'error_freq'))
 		self.error_file = configParser.get('Error', 'file')
 		self.max_epochs = int(configParser.get('Error', 'max_epochs'))
+        self.function_sigma = configParser.get('Algorithm', 'sigma')
 		self.function_type = configParser.get('Backpropagation', 'type')
 		self.beta = float(configParser.get('Backpropagation', 'function_beta'))
 		self.etha = float(configParser.get('Backpropagation', 'etha'))

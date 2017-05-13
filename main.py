@@ -47,15 +47,15 @@ class NeuralNetwork:
     def normalize_patterns(self, train_patterns, test_patterns):
         outputs = reduce(lambda x, y: x + y, [pattern.expected_output for pattern in train_patterns], [])
         inputs = reduce(lambda x, y: x + y, [pattern.input for pattern in train_patterns], [])
-        
+
         def norm(v, a, b, c, d):
-            return (d - c) * v / (b - a) + d - ((d - c) * b / (b - a)) 
-        
+            return (d - c) * v / (b - a) + d - ((d - c) * b / (b - a))
+
         o_min = 0.1 if props.function_type == "sigmoid" else -0.8
         o_max = 0.9 if props.function_type == "sigmoid" else 0.8
 
         self.norm_input = lambda x: norm(x, min(inputs), max(inputs), -1 , 1)
-                    
+
         def norm_output(v):
             return norm(v, min(outputs), max(outputs), o_min, o_max)
 
@@ -77,7 +77,7 @@ class NeuralNetwork:
 
     def init_weights(self, layer_sizes):
         layer_sizes_len = len(layer_sizes)
-        
+
         if not props.init_w_randomly:
             self.layers_weights = self.read_weights()
             if layer_sizes_len - 1 != len(self.layers_weights):
@@ -88,13 +88,24 @@ class NeuralNetwork:
                     raise Exception("{} layer size doesn't match {}".format(np.shape(self.layers_weights[i]), layer_shape))
             return
 
+        m = sum(layer_sizes)
+        sigma_m = pow(m,(-1/2))
+
         def random_uniform_list(n):
             return [random.uniform(-0.5, 0.5) for _ in range(n)]
+
+        def nodes_based_list(n):
+            return [random.uniform(-sigma_m, sigma_m) for _ in range(n)]
+
+        def get_weights_list(prev_layer_size, curr_layer_size):
+            if props.function_sigma == "middle_nodes" :
+                return [nodes_based_list(prev_layer_size) for b in range(curr_layer_size)]
+            return [random_uniform_list(prev_layer_size) for b in range(curr_layer_size)]
 
         for i in range(1, layer_sizes_len):
             prev_layer_size = layer_sizes[i - 1] + 1 # Considering bias node too
             curr_layer_size = layer_sizes[i]
-            weights = [random_uniform_list(prev_layer_size) for b in range(curr_layer_size)]
+            weights = get_weights_list(prev_layer_size, curr_layer_size)
             self.layers_weights.append(weights)
 
     def read_weights(self):
@@ -145,20 +156,21 @@ class NeuralNetwork:
             if (self.sqr_error < props.error and epoch > 100) or self.stop:
                 break
             self.reset_error_counters()
-            self.run_epoch(g, dg)         
-            delta_error = self.sqr_error - self.prev_sqr_error            
+            self.run_epoch(g, dg)
+            delta_error = self.sqr_error - self.prev_sqr_error
             shouldUndo = self.adaptative_etha(delta_error, epoch)
             if shouldUndo:
                 continue
             for i, _ in enumerate(self.layers_weights):
                 self.layers_weights[i] = np.add(self.layers_weights[i], self.delta_weights[i])
                 self.momentum(delta_error, i)
+
             self.prev_delta_weights = self.delta_weights
 
         if props.save_weights:
             self.write_weights(self.layers_weights)
 
-        self.write_error() 
+        self.write_error()
 
     def read_stdin(self, args):
         network = args
@@ -340,7 +352,7 @@ def main():
             test_patterns = read_patterns(f)
 
     network = NeuralNetwork(train_patterns, test_patterns, props.etha)
-    network.init_weights(layers_sizes)   
+    network.init_weights(layers_sizes)
     network.learn_patterns(props.max_epochs)
 
     all_patterns = []

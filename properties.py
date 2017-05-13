@@ -7,6 +7,7 @@ class Properties:
 		configParser = configparser.RawConfigParser()
 		configParser.read(filename)
 		self.error = float(configParser.get('Algorithm', 'error'))
+		self.error_freq = float(configParser.get('Algorithm', 'error_freq'))
 		self.function_type = configParser.get('Backpropagation', 'type')
 		self.beta = float(configParser.get('Backpropagation', 'function_beta'))
 		self.etha = float(configParser.get('Backpropagation', 'etha'))

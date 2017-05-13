@@ -13,16 +13,18 @@ props = Properties("config.properties")
 
 class NeuralNetwork:
 
-    def __init__(self, patterns, etha):
+    def __init__(self, train_patterns, test_patterns, etha):
         # Row corresponds to output, and column to input
         self.layers_weights = []
         self.saved_weights = None
         self.etha = etha
-        self.input_patterns = self.normalize_patterns(patterns)
+        [self.input_patterns, self.test_patterns] = self.normalize_patterns(train_patterns, test_patterns)
         self.delta_weights = []
         self.prev_delta_weights = []
         self.prev_sqr_error = 0
         self.sqr_error = 0
+        self.training_errors = []
+        self.test_errors = []
 
     def tanh(self, x):
         return np.tanh(x * props.beta)
@@ -36,9 +38,9 @@ class NeuralNetwork:
     def d_sigmoid(self, x):
         return 2 * props.beta * x * (1 - x)
 
-    def normalize_patterns(self, patterns):
-        outputs = reduce(lambda x, y: x + y, [pattern.expected_output for pattern in patterns], [])
-        inputs = reduce(lambda x, y: x + y, [pattern.input for pattern in patterns], [])
+    def normalize_patterns(self, train_patterns, test_patterns):
+        outputs = reduce(lambda x, y: x + y, [pattern.expected_output for pattern in train_patterns], [])
+        inputs = reduce(lambda x, y: x + y, [pattern.input for pattern in train_patterns], [])
         
         def norm(v, a, b, c, d):
             return (d - c) * v / (b - a) + d - ((d - c) * b / (b - a)) 
@@ -53,12 +55,19 @@ class NeuralNetwork:
 
         self.denorm_output = lambda x: norm(x, o_min, o_max, min(outputs), max(outputs))
 
-        norm_patterns = []
-        for pattern in patterns:
+        norm_train_patterns = []
+        for pattern in train_patterns:
             new_input = [self.norm_input(v) for v in pattern.input]
             new_output = [norm_output(v) for v in pattern.expected_output]
-            norm_patterns.append(Pattern(new_input, new_output))
-        return norm_patterns
+            norm_train_patterns.append(Pattern(new_input, new_output))
+
+        norm_test_patterns = []
+        for pattern in test_patterns:
+            new_input = [self.norm_input(v) for v in pattern.input]
+            new_output = [norm_output(v) for v in pattern.expected_output]
+            norm_test_patterns.append(Pattern(new_input, new_output))
+
+        return [norm_train_patterns, norm_test_patterns]
 
     def init_weights(self, layer_sizes):
         layer_sizes_len = len(layer_sizes)
@@ -85,6 +94,11 @@ class NeuralNetwork:
         self.prev_delta_weights = [np.zeros(np.shape(layer)) for layer in self.layers_weights]
         delta_error = 0
         for epoch in range(n):
+            if epoch % props.error_freq == 0:
+                self.training_errors.append(self.sqr_error)
+                self.test_errors.append(self.get_test_error())
+                print("Training: {}, Test: {}".format(self.training_errors[-1], self.test_errors[-1]))
+
             if self.sqr_error < props.error and epoch > 1000:
                 break
             
@@ -142,6 +156,13 @@ class NeuralNetwork:
 
         return outputs
 
+    def get_test_error(self):
+        error = 0
+        for pattern in self.test_patterns:
+            output = self.get_outputs(pattern.input, self.get_g())[-1]
+            error = np.subtract(pattern.expected_output, output) ** 2
+        return error / (2 * len(self.test_patterns))
+
     def get_output(self, pattern):
         norm_pattern = [self.norm_input(i_val) for i_val in pattern]
         output = self.get_outputs(norm_pattern, self.get_g())[-1]
@@ -175,11 +196,8 @@ class NeuralNetwork:
 
 Pattern = collections.namedtuple('Pattern', ['input', 'expected_output'])
 
-def main():
-    props = Properties("config.properties")
-
-    with open(props.training_file) as f:
-        lines = f.readlines()[1:]
+def read_patterns(f):
+    lines = f.readlines()[1:]
 
     patterns = []
     for line in lines:
@@ -189,38 +207,58 @@ def main():
         input_values = [float(x) for x in inputs]
         expected_outputs_values = [float(x) for x in expected_outputs]
         patterns.append(Pattern(input_values, expected_outputs_values))
+    return patterns
 
-    input_size = len(patterns[0].input)
-    output_size = len(patterns[0].expected_output)
+def main():
+    props = Properties("config.properties")
+
+    train_patterns = []
+    with open(props.training_file) as f:
+        train_patterns = read_patterns(f)
+
+    input_size = len(train_patterns[0].input)
+    output_size = len(train_patterns[0].expected_output)
     layers_sizes = [input_size] + props.hidden_layer_sizes + [output_size]
 
-    network = NeuralNetwork(patterns, props.etha)
-    network.init_weights(layers_sizes)
-    network.learn_patterns(100000)
+    test_patterns = []
+    with open(props.test_file) as f:
+        test_patterns = read_patterns(f)
 
-    # Checking that everything works as intended
-    if input_size == 2:
-        print(network.get_output([1, 1]))
-        print(network.get_output([1, -1]))
-        print(network.get_output([-1, 1]))
-        print(network.get_output([-1, -1]))
-    else:
-        print(network.get_output([0])) #~0
-        print(network.get_output([0.1])) #~1
-        print(network.get_output([0.3])) #2
-        print(network.get_output([0.4])) #5
-        print(network.get_output([0.45])) #2
-        print(network.get_output([0.475])) #~1
-        print(network.get_output([0.5])) #0
-        print(network.get_output([0.55])) #3
-        print(network.get_output([0.6])) #~20
-        print(network.get_output([0.65])) #~28
-        print(network.get_output([0.7])) #33
-        print(network.get_output([0.75])) #~40
-        print(network.get_output([0.85])) #~45
-        print(network.get_output([0.8])) #50
-        print(network.get_output([0.9])) #78
-        print(network.get_output([1])) #100
+    network = NeuralNetwork(train_patterns, test_patterns, props.etha)
+    network.init_weights(layers_sizes)
+    network.learn_patterns(10000)
+
+    all_patterns = []
+    with open(props.filename) as f:
+        all_patterns = read_patterns(f)
+
+    for pattern in all_patterns:
+        print("{} | {}".format(network.get_output(pattern.input), pattern.expected_output))
+
+
+    # # Checking that everything works as intended
+    # if input_size == 2:
+    #     print(network.get_output([1, 1]))
+    #     print(network.get_output([1, -1]))
+    #     print(network.get_output([-1, 1]))
+    #     print(network.get_output([-1, -1]))
+    # else:
+    #     print(network.get_output([0])) #~0
+    #     print(network.get_output([0.1])) #~1
+    #     print(network.get_output([0.3])) #2
+    #     print(network.get_output([0.4])) #5
+    #     print(network.get_output([0.45])) #2
+    #     print(network.get_output([0.475])) #~1
+    #     print(network.get_output([0.5])) #0
+    #     print(network.get_output([0.55])) #3
+    #     print(network.get_output([0.6])) #~20
+    #     print(network.get_output([0.65])) #~28
+    #     print(network.get_output([0.7])) #33
+    #     print(network.get_output([0.75])) #~40
+    #     print(network.get_output([0.85])) #~45
+    #     print(network.get_output([0.8])) #50
+    #     print(network.get_output([0.9])) #78
+    #     print(network.get_output([1])) #100
 
 
 if __name__ == "__main__":

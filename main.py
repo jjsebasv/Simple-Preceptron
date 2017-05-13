@@ -3,11 +3,12 @@
 import collections
 import numpy as np
 import random
+from threading import Thread
 from functools import reduce
 from properties import Properties
 
 
-
+stop = False
 props = Properties("config.properties")
 
 
@@ -125,6 +126,8 @@ class NeuralNetwork:
         return self.d_sigmoid if props.function_type == "sigmoid" else self.d_tanh
 
     def learn_patterns(self, n):
+        global stop
+
         g = self.get_g()
         dg = self.get_dg()
 
@@ -132,8 +135,8 @@ class NeuralNetwork:
         delta_error = 0        
         for epoch in range(n):
             self.calculate_error(epoch)
-            # If error reached, break
-            if self.sqr_error < props.error and epoch > 100:
+            # If error reached or Q was pressed, break
+            if (self.sqr_error < props.error and epoch > 100) or stop:
                 break
             self.reset_error_counters()
             self.run_epoch(g, dg)         
@@ -271,6 +274,13 @@ def read_patterns(f):
         patterns.append(Pattern(input_values, expected_outputs_values))
     return patterns
 
+def stop_thread():
+    global stop
+
+    Quit = input('Press Q and Enter to Quit\n')
+    if Quit == "Q":
+        stop = True
+
 def main():
     props = Properties("config.properties")
 
@@ -288,7 +298,11 @@ def main():
             test_patterns = read_patterns(f)
 
     network = NeuralNetwork(train_patterns, test_patterns, props.etha)
-    network.init_weights(layers_sizes)    
+    network.init_weights(layers_sizes)   
+
+    thread = Thread(target = stop_thread, args = [])
+    thread.start()
+
     network.learn_patterns(props.max_epochs)
 
     all_patterns = []

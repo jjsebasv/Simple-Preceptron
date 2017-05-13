@@ -21,6 +21,7 @@ class NeuralNetwork:
         [self.input_patterns, self.test_patterns] = self.normalize_patterns(train_patterns, test_patterns)
         self.delta_weights = []
         self.prev_delta_weights = []
+        self.prev_prev_sqr_error = 0
         self.prev_sqr_error = 0
         self.sqr_error = 0
         self.training_errors = []
@@ -71,6 +72,16 @@ class NeuralNetwork:
 
     def init_weights(self, layer_sizes):
         layer_sizes_len = len(layer_sizes)
+        
+        if not props.init_w_randomly:
+            self.layers_weights = self.read_weights()
+            if layer_sizes_len - 1 != len(self.layers_weights):
+                raise Exception("{} layers doesn't match {}".format(len(self.layers_weights), layer_sizes_len))
+            for i in range(layer_sizes_len - 1):
+                layer_shape = (layer_sizes[i + 1], layer_sizes[i] + 1)
+                if layer_shape != np.shape(self.layers_weights[i]):
+                    raise Exception("{} layer size doesn't match {}".format(np.shape(self.layers_weights[i]), layer_shape))
+            return
 
         def random_uniform_list(n):
             return [random.uniform(-0.5, 0.5) for _ in range(n)]
@@ -80,6 +91,32 @@ class NeuralNetwork:
             curr_layer_size = layer_sizes[i]
             weights = [random_uniform_list(prev_layer_size) for b in range(curr_layer_size)]
             self.layers_weights.append(weights)
+
+    def read_weights(self):
+        layer_weights = []
+        with open(props.weights_file) as f:
+            i = 0
+            lines = f.readlines()
+            layers = int(lines[i])
+            i += 1
+            for j in range(layers):
+                rows = int(lines[i].split()[0])
+                i += 1
+                layer = [[] for r in range(rows)]
+                for r in range(rows):
+                    layer[r] = [float(x) for x in lines[i].split()]
+                    i += 1
+                layer_weights.append(layer)
+        return layer_weights
+
+    def write_weights(self, layer_weights):
+        with open(props.weights_file, "w+") as f:
+            f.write("{}\n".format(len(layer_weights)))
+            for layer_w in layer_weights:
+                f.write("{} {}\n".format(len(layer_w), len(layer_w[0])))
+                for row in layer_w:
+                    f.write(" ".join(str(x) for x in row.tolist()))
+                    f.write("\n")
 
     def get_g(self):
         return self.sigmoid if props.function_type == "sigmoid" else self.tanh
@@ -92,54 +129,77 @@ class NeuralNetwork:
         dg = self.get_dg()
 
         self.prev_delta_weights = [np.zeros(np.shape(layer)) for layer in self.layers_weights]
-        delta_error = 0
+        delta_error = 0        
         for epoch in range(n):
-            if epoch % props.error_freq == 0:
-                self.training_errors.append(self.sqr_error)
-                self.test_errors.append(self.get_test_error())
-                print("Training: {}, Test: {}".format(self.training_errors[-1], self.test_errors[-1]))
-
-            if self.sqr_error < props.error and epoch > 1000:
+            self.calculate_error(epoch)
+            # If error reached, break
+            if self.sqr_error < props.error and epoch > 100:
                 break
-            
-            if epoch % 10 == 0:
-                print("EPOCH {}. error: {}".format(epoch, self.sqr_error))
-
-            self.prev_sqr_error = self.sqr_error
-            self.sqr_error = 0
-            self.delta_weights = [np.zeros(np.shape(layer)) for layer in self.layers_weights]
-            
-            random.shuffle(self.input_patterns)
-            for pattern in self.input_patterns:
-                self.learn_pattern(pattern, g, dg)
-            
-            self.sqr_error = self.sqr_error / (2 * len(self.input_patterns))
-            delta_error = self.sqr_error - self.prev_sqr_error
-            
-            #Adaptive etha
-            if props.use_adap_etha and epoch % props.epoch_freq == 0:
-                self.etha += self.get_delta_etha(delta_error)
-                if delta_error > 0 and random.random() <= props.undo_probability and self.saved_weights != None:
-                    self.layers_weights = self.saved_weights
-                    self.prev_delta_weights = [np.zeros(np.shape(layer)) for layer in self.layers_weights]
-                    continue
-                else:
-                    self.saved_weights = self.layers_weights
-
+            self.reset_error_counters()
+            self.run_epoch(g, dg)         
+            delta_error = self.sqr_error - self.prev_sqr_error            
+            shouldUndo = self.adaptative_etha(delta_error, epoch)
+            if shouldUndo:
+                continue
             for i, _ in enumerate(self.layers_weights):
                 self.layers_weights[i] = np.add(self.layers_weights[i], self.delta_weights[i])
-                #Momentum
-                if props.use_momentum and delta_error <= 0:
-                    delta_momentum = np.multiply(props.momentum_alpha, self.prev_delta_weights[i])
-                    self.layers_weights[i] = np.add(self.layers_weights[i], delta_momentum)
-            
+                self.momentum(delta_error, i)
             self.prev_delta_weights = self.delta_weights
+
+        if props.save_weights:
+            self.write_weights(self.layers_weights)
+
+        self.write_error() 
+
+    def calculate_error(self, epoch):
+        if epoch % props.error_freq == 0:
+            self.training_errors.append(self.sqr_error)
+            self.test_errors.append(self.get_test_error())
+            print("Epoch: {}, Training: {}, Test: {}".format(epoch, self.training_errors[-1], self.test_errors[-1]))
+
+    def write_error(self):
+        if props.error_file != None and props.error_file != "":
+            with open(props.error_file, "w+") as err_f:
+                for i in range(len(self.training_errors)):
+                    training = self.training_errors[i]
+                    test = self.test_errors[i]
+                    err_f.write("{};{};{}\n".format(i * props.error_freq, training, test))
+
+    def reset_error_counters(self):
+        self.prev_prev_sqr_error = self.prev_sqr_error
+        self.prev_sqr_error = self.sqr_error
+        self.sqr_error = 0
+        self.delta_weights = [np.zeros(np.shape(layer)) for layer in self.layers_weights]
+
+    def adaptative_etha(self, delta_error, epoch):
+        if props.use_adap_etha and epoch % props.epoch_freq == 0:
+            self.etha += self.get_delta_etha(delta_error)
+            if delta_error > 0 and random.random() <= props.undo_probability and self.saved_weights != None:
+                self.layers_weights = self.saved_weights
+                self.prev_delta_weights = [np.zeros(np.shape(layer)) for layer in self.layers_weights]
+                self.prev_sqr_error = self.prev_prev_sqr_error
+                self.sqr_error = self.prev_sqr_error
+                return True
+            else:
+                self.saved_weights = self.layers_weights
+        return False
 
     def get_delta_etha(self, delta_error):
         if delta_error <= 0:
             return props.etha_a
         else:
             return -props.etha_b * self.etha
+
+    def momentum(self, delta_error, i):
+        if props.use_momentum and delta_error <= 0:
+            delta_momentum = np.multiply(props.momentum_alpha, self.prev_delta_weights[i])
+            self.layers_weights[i] = np.add(self.layers_weights[i], delta_momentum)
+
+    def run_epoch(self, g, dg):
+        random.shuffle(self.input_patterns)
+        for pattern in self.input_patterns:
+            self.learn_pattern(pattern, g, dg)
+        self.sqr_error = self.sqr_error / (2 * len(self.input_patterns))
 
     def learn_pattern(self, pattern, g, dg):
         outputs = self.get_outputs(pattern.input, g)
@@ -157,10 +217,12 @@ class NeuralNetwork:
         return outputs
 
     def get_test_error(self):
+        if len(self.test_patterns) == 0:
+            return None
         error = 0
         for pattern in self.test_patterns:
             output = self.get_outputs(pattern.input, self.get_g())[-1]
-            error = np.subtract(pattern.expected_output, output) ** 2
+            error = sum(np.power(np.subtract(pattern.expected_output, output), 2))
         return error / (2 * len(self.test_patterns))
 
     def get_output(self, pattern):
@@ -177,7 +239,7 @@ class NeuralNetwork:
         negl = 0.1 if props.use_non_zero_dg else 0
         dgs = [dg(x) + negl for x in outputs[-1]]
         expected_difference = np.subtract(expected_output, outputs[-1])
-        self.sqr_error += expected_difference ** 2
+        self.sqr_error += sum(np.power(expected_difference, 2))
         small_delta[layers_weights_len - 1] = np.multiply(dgs, expected_difference)
 
         for i in reversed(range(1, layers_weights_len)):
@@ -221,12 +283,13 @@ def main():
     layers_sizes = [input_size] + props.hidden_layer_sizes + [output_size]
 
     test_patterns = []
-    with open(props.test_file) as f:
-        test_patterns = read_patterns(f)
+    if props.test_file != "":
+        with open(props.test_file) as f:
+            test_patterns = read_patterns(f)
 
     network = NeuralNetwork(train_patterns, test_patterns, props.etha)
-    network.init_weights(layers_sizes)
-    network.learn_patterns(10000)
+    network.init_weights(layers_sizes)    
+    network.learn_patterns(props.max_epochs)
 
     all_patterns = []
     with open(props.filename) as f:

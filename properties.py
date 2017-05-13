@@ -6,8 +6,10 @@ class Properties:
 	def __init__(self, filename):
 		configParser = configparser.RawConfigParser()
 		configParser.read(filename)
-		self.error = float(configParser.get('Algorithm', 'error'))
-		self.error_freq = float(configParser.get('Algorithm', 'error_freq'))
+		self.error = float(configParser.get('Error', 'error'))
+		self.error_freq = float(configParser.get('Error', 'error_freq'))
+		self.error_file = configParser.get('Error', 'file')
+		self.max_epochs = int(configParser.get('Error', 'max_epochs'))
 		self.function_type = configParser.get('Backpropagation', 'type')
 		self.beta = float(configParser.get('Backpropagation', 'function_beta'))
 		self.etha = float(configParser.get('Backpropagation', 'etha'))
@@ -24,3 +26,6 @@ class Properties:
 		self.test_file = configParser.get('Pattern File', 'test')
 		self.training_percentage = float(configParser.get('Pattern File', 'training_percentage'))
 		self.hidden_layer_sizes = json.loads(configParser.get('Hidden Layers', 'sizes'))
+		self.weights_file = configParser.get('Weights', 'file')
+		self.init_w_randomly = configParser.get('Weights', 'init_randomly') == "true"
+		self.save_weights = configParser.get('Weights', 'save') == "true"

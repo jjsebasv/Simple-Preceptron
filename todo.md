@@ -15,8 +15,9 @@
   * ~Guardar los `delta_weight` por input y sumarlos entre si.~
   * ~Actualizar los pesos de los nodos, para la segunda corrida (con el segundo epoca)~
 
-* Graficar error de testeo y de entrenamiento (sobre las corridas de epocas)
-  * `Sum(1/2N (si - oi)^2)`
+* ~Graficar error de testeo y de entrenamiento (sobre las corridas de epocas)~
+  * ~`Sum(1/2N (si - oi)^2)`~
+  * Escupir los errores a un archivo
 
 * ~3 variantes de backpropagation~
   * ~etha adaptativo~
@@ -30,7 +31,7 @@
 * Inicializar pesos adecuadamente
   *  reconmendado: `sigma(m) = m ^ (-1/2)`
 
-* Poder configuar la frecuencia con la que se calcula el error (cada cuantas epocas)
+* ~Poder configuar la frecuencia con la que se calcula el error (cada cuantas epocas)~
 
 * Guardar los pesos finales en un archivo
   * Levantarlos de nuevo --> en vez de pesos iniciales random

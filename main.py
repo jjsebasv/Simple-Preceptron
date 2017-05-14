@@ -29,7 +29,7 @@ class NeuralNetwork:
 
         self.stop = False
         self.view_weights = False
-        self.view_input = False
+        self.view_pattern = False
         self.view_outputs = False
         self.save_weights = False
         self.weights_file = ""
@@ -57,6 +57,7 @@ class NeuralNetwork:
         o_max = 0.9 if props.function_type == "sigmoid" else 0.8
 
         self.norm_input = lambda x: norm(x, min(inputs), max(inputs), -1 , 1)
+        self.denorm_input = lambda x: norm(x, -1 , 1, min(inputs), max(inputs))
                     
         def norm_output(v):
             return norm(v, min(outputs), max(outputs), o_min, o_max)
@@ -167,7 +168,7 @@ class NeuralNetwork:
         network = args
         print("Press Q and Enter to Quit.\n"
                  + "Press W to view weights.\n"
-                 + "Press I to view input.\n"
+                 + "Press I to view pattern.\n"
                  + "Press O to view outputs.\n"
                  + "Press 'S <filename>' to save the weights.\n")
         while not network.stop:
@@ -179,7 +180,7 @@ class NeuralNetwork:
             if "W" in key:
                 network.view_weights = True
             if "I" in key:
-                network.view_input = True
+                network.view_pattern = True
             if "O" in key:
                 network.view_outputs = True
             if "S" in key:
@@ -254,14 +255,16 @@ class NeuralNetwork:
     def run_epoch(self, g, dg):
         random.shuffle(self.input_patterns)
         for pattern in self.input_patterns:
-            self.check_view_input(pattern)
+            self.check_view_pattern(pattern)
             self.learn_pattern(pattern, g, dg)
         self.sqr_error = self.sqr_error / (2 * len(self.input_patterns))
 
-    def check_view_input(self, pattern):
-        if self.view_input:
-            print("\nInput: {}".format(pattern.input))
-            self.view_input = False
+    def check_view_pattern(self, pattern):
+        if self.view_pattern:
+            i = [self.denorm_input(o_val) for o_val in pattern.input]
+            o = [self.denorm_output(o_val) for o_val in pattern.expected_output]
+            print("\nInput: {}, Exp. Output: {}".format(np.round(i, 5), np.round(o, 5)))
+            self.view_pattern = False
 
     def learn_pattern(self, pattern, g, dg):
         outputs = self.get_outputs(pattern.input, g)
@@ -271,8 +274,11 @@ class NeuralNetwork:
     def check_view_outputs(self, outputs):
         if self.view_outputs:
             for i in range(len(outputs)):
-                if i >= 1:
-                    print("\nLayer {} output: {}".format(i, outputs[i]));
+                if i == len(outputs) - 1:
+                    output = o = [self.denorm_output(o_val) for o_val in outputs[i]]
+                    print("\nLayer {} output (denorm): {}".format(i, np.round(outputs[i], 5)))
+                elif i >= 1:
+                    print("\nLayer {} output: {}".format(i, np.round(outputs[i], 5)))
             self.view_outputs = False
 
     def get_outputs(self, input, g):

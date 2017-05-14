@@ -148,6 +148,7 @@ class NeuralNetwork:
 
         self.prev_delta_weights = [np.zeros(np.shape(layer)) for layer in self.layers_weights]
         delta_error = 0
+        delta_error_count = 0
         self.finish = False
         thread = Thread(target = self.read_stdin, args = [self])
         thread.start()
@@ -156,8 +157,13 @@ class NeuralNetwork:
             self.check_view_weights()
             self.check_save_weights()
             self.calculate_error(epoch)
+            if abs(delta_error) < props.delta_error:
+                delta_error_count += 1
+            else:
+                delta_error_count = 0
             # If error reached or Q was pressed, break
-            if ((self.sqr_error < props.error or abs(delta_error) < props.delta_error) and epoch > 100) or self.stop:
+            if ((self.sqr_error < props.error or delta_error_count > 10) and epoch > 100) or self.stop:
+                print(delta_error_count)
                 break
             self.reset_error_counters()
             self.run_epoch(g, dg)

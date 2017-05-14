@@ -88,9 +88,6 @@ class NeuralNetwork:
                     raise Exception("{} layer size doesn't match {}".format(np.shape(self.layers_weights[i]), layer_shape))
             return
 
-        m = sum(layer_sizes)
-        sigma_m = pow(m,(-1/2))
-
         def random_uniform_list(n):
             return [random.uniform(-0.5, 0.5) for _ in range(n)]
 

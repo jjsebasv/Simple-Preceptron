@@ -94,13 +94,14 @@ class NeuralNetwork:
         def random_uniform_list(n):
             return [random.uniform(-0.5, 0.5) for _ in range(n)]
 
-        def nodes_based_list(n):
-            return [random.uniform(-sigma_m, sigma_m) for _ in range(n)]
+        def nodes_based_list(m):
+            sigma_m = pow(m,(-1/2))
+            return [random.uniform(-sigma_m, sigma_m) for _ in range(m)]
 
         def get_weights_list(prev_layer_size, curr_layer_size):
             if props.function_sigma == "middle_nodes" :
                 return [nodes_based_list(prev_layer_size) for b in range(curr_layer_size)]
-            return [random_uniform_list(prev_layer_size) for b in range(curr_layer_size)]
+            return [random_uniform_list(curr_layer_size) for b in range(curr_layer_size)]
 
         for i in range(1, layer_sizes_len):
             prev_layer_size = layer_sizes[i - 1] + 1 # Considering bias node too

@@ -138,6 +138,7 @@ class NeuralNetwork:
 
         self.prev_delta_weights = [np.zeros(np.shape(layer)) for layer in self.layers_weights]
         delta_error = 0
+        self.finish = False
         thread = Thread(target = self.read_stdin, args = [self])
         thread.start()
 
@@ -158,11 +159,12 @@ class NeuralNetwork:
                 self.layers_weights[i] = np.add(self.layers_weights[i], self.delta_weights[i])
                 self.momentum(delta_error, i)
             self.prev_delta_weights = self.delta_weights
+        self.finish = True
 
         if props.save_weights:
             self.write_weights(self.layers_weights)
 
-        self.write_error() 
+        self.write_error()
 
     def read_stdin(self, args):
         network = args
@@ -171,7 +173,7 @@ class NeuralNetwork:
                  + "Press I to view pattern.\n"
                  + "Press O to view outputs.\n"
                  + "Press 'S <filename>' to save the weights.\n")
-        while not network.stop:
+        while not network.stop and not network.finish:
             while network.save_weights:
                 None    
             key = input()

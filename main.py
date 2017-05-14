@@ -6,6 +6,7 @@ import random
 from threading import Thread
 from functools import reduce
 from properties import Properties
+import sys, select
 
 
 props = Properties("config.properties")
@@ -29,8 +30,10 @@ class NeuralNetwork:
 
         self.stop = False
         self.view_weights = False
-        self.view_input = False
+        self.view_pattern = False
         self.view_outputs = False
+        self.save_weights = False
+        self.weights_file = ""
 
     def tanh(self, x):
         return np.tanh(x * props.beta)
@@ -55,7 +58,8 @@ class NeuralNetwork:
         o_max = 0.9 if props.function_type == "sigmoid" else 0.8
 
         self.norm_input = lambda x: norm(x, min(inputs), max(inputs), -1 , 1)
-
+        self.denorm_input = lambda x: norm(x, -1 , 1, min(inputs), max(inputs))
+                    
         def norm_output(v):
             return norm(v, min(outputs), max(outputs), o_min, o_max)
 
@@ -144,11 +148,13 @@ class NeuralNetwork:
 
         self.prev_delta_weights = [np.zeros(np.shape(layer)) for layer in self.layers_weights]
         delta_error = 0
+        self.finish = False
         thread = Thread(target = self.read_stdin, args = [self])
         thread.start()
 
         for epoch in range(n):
             self.check_view_weights()
+            self.check_save_weights()
             self.calculate_error(epoch)
             # If error reached or Q was pressed, break
             if (self.sqr_error < props.error and epoch > 100) or self.stop:
@@ -164,6 +170,7 @@ class NeuralNetwork:
                 self.momentum(delta_error, i)
 
             self.prev_delta_weights = self.delta_weights
+        self.finish = True
 
         if props.save_weights:
             self.write_weights(self.layers_weights)
@@ -174,30 +181,47 @@ class NeuralNetwork:
         network = args
         print("Press Q and Enter to Quit.\n"
                  + "Press W to view weights.\n"
-                 + "Press I to view input.\n"
-                 + "Press O to view outputs.\n")
-        while not network.stop:
-            key = input()
-            if key == "Q":
-                network.stop = True
-            if "W" in key:
-                network.view_weights = True
-            if "I" in key:
-                network.view_input = True
-            if "O" in key:
-                network.view_outputs = True
+                 + "Press I to view pattern.\n"
+                 + "Press O to view outputs.\n"
+                 + "Press 'S <filename>' to save the weights.\n")
+        while not network.stop and not network.finish:
+            while network.save_weights:
+                None    
+            i, o, e = select.select( [sys.stdin], [], [], 1)
+            if i:
+                key = sys.stdin.readline().strip()
+                if key == "Q":
+                    network.stop = True
+                if "W" in key:
+                    network.view_weights = True
+                if "I" in key:
+                    network.view_pattern = True
+                if "O" in key:
+                    network.view_outputs = True
+                if "S" in key:
+                    network.save_weights = True
+                    network.weights_file = key.split("S ")[1]
+                key = ""
+        print("Finished!")
+
+    def check_save_weights(self):
+        if self.save_weights:
+            aux = props.weights_file
+            props.weights_file = self.weights_file
+            self.write_weights(self.layers_weights)
+            props.weights_file = aux
+            self.save_weights = False
 
     def check_view_weights(self):
         if self.view_weights:
             for i in range(len(self.layers_weights)):
                 print("\nWeights Layers {} - {}:".format(i, i + 1))
                 self.print_weights(i)
-        self.view_weights = False
+            self.view_weights = False
 
     def print_weights(self, i):
         for row in self.layers_weights[i]:
-            print(" ".join(str(x) for x in row.tolist()))
-            print("\n")
+            print(" ".join(str(np.round(x, 4)) for x in row.tolist()))
 
     def calculate_error(self, epoch):
         if epoch % props.error_freq == 0:
@@ -246,14 +270,16 @@ class NeuralNetwork:
     def run_epoch(self, g, dg):
         random.shuffle(self.input_patterns)
         for pattern in self.input_patterns:
-            self.check_view_input(pattern)
+            self.check_view_pattern(pattern)
             self.learn_pattern(pattern, g, dg)
         self.sqr_error = self.sqr_error / (2 * len(self.input_patterns))
 
-    def check_view_input(self, pattern):
-        if self.view_input:
-            print("\nInput: {}".format(pattern.input))
-            self.view_input = False
+    def check_view_pattern(self, pattern):
+        if self.view_pattern:
+            i = [self.denorm_input(o_val) for o_val in pattern.input]
+            o = [self.denorm_output(o_val) for o_val in pattern.expected_output]
+            print("\nInput: {}, Exp. Output: {}".format(np.round(i, 5), np.round(o, 5)))
+            self.view_pattern = False
 
     def learn_pattern(self, pattern, g, dg):
         outputs = self.get_outputs(pattern.input, g)
@@ -263,8 +289,11 @@ class NeuralNetwork:
     def check_view_outputs(self, outputs):
         if self.view_outputs:
             for i in range(len(outputs)):
-                if i >= 1:
-                    print("\nLayer {} output: {}".format(i, outputs[i]));
+                if i == len(outputs) - 1:
+                    output = o = [self.denorm_output(o_val) for o_val in outputs[i]]
+                    print("\nLayer {} output (denorm): {}".format(i, np.round(outputs[i], 5)))
+                elif i >= 1:
+                    print("\nLayer {} output: {}".format(i, np.round(outputs[i], 5)))
             self.view_outputs = False
 
     def get_outputs(self, input, g):
@@ -357,8 +386,16 @@ def main():
     with open(props.filename) as f:
         all_patterns = read_patterns(f)
 
-    for pattern in all_patterns:
-        print("{} | {}".format(network.get_output(pattern.input), pattern.expected_output))
+    with open(props.function_file, "w+") as f:
+        for pattern in all_patterns:
+            output = network.get_output(pattern.input)
+            f.write(";".join(str(x) for x in pattern.input))
+            f.write(";")
+            f.write(";".join(str(x) for x in output))
+            f.write(";")
+            f.write(";".join(str(x) for x in pattern.expected_output))
+            f.write("\n")
+            print("{} | {}".format(output, pattern.expected_output))
 
 
     # # Checking that everything works as intended

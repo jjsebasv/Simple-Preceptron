@@ -27,5 +27,6 @@ class Properties:
 		self.training_percentage = float(configParser.get('Pattern File', 'training_percentage'))
 		self.hidden_layer_sizes = json.loads(configParser.get('Hidden Layers', 'sizes'))
 		self.weights_file = configParser.get('Weights', 'file')
+		self.function_file = configParser.get('Function', 'file')
 		self.init_w_randomly = configParser.get('Weights', 'init_randomly') == "true"
 		self.save_weights = configParser.get('Weights', 'save') == "true"

@@ -6,6 +6,7 @@ import random
 from threading import Thread
 from functools import reduce
 from properties import Properties
+import sys, select
 
 
 props = Properties("config.properties")
@@ -176,19 +177,22 @@ class NeuralNetwork:
         while not network.stop and not network.finish:
             while network.save_weights:
                 None    
-            key = input()
-            if key == "Q":
-                network.stop = True
-            if "W" in key:
-                network.view_weights = True
-            if "I" in key:
-                network.view_pattern = True
-            if "O" in key:
-                network.view_outputs = True
-            if "S" in key:
-                network.save_weights = True
-                network.weights_file = key.split("S ")[1]
-            key = ""
+            i, o, e = select.select( [sys.stdin], [], [], 1)
+            if i:
+                key = sys.stdin.readline().strip()
+                if key == "Q":
+                    network.stop = True
+                if "W" in key:
+                    network.view_weights = True
+                if "I" in key:
+                    network.view_pattern = True
+                if "O" in key:
+                    network.view_outputs = True
+                if "S" in key:
+                    network.save_weights = True
+                    network.weights_file = key.split("S ")[1]
+                key = ""
+        print("Finished!")
 
     def check_save_weights(self):
         if self.save_weights:
@@ -207,8 +211,7 @@ class NeuralNetwork:
 
     def print_weights(self, i):
         for row in self.layers_weights[i]:
-            print(" ".join(str(x) for x in row.tolist()))
-            print("\n")
+            print(" ".join(str(np.round(x, 4)) for x in row.tolist()))
 
     def calculate_error(self, epoch):
         if epoch % props.error_freq == 0:
@@ -373,8 +376,16 @@ def main():
     with open(props.filename) as f:
         all_patterns = read_patterns(f)
 
-    for pattern in all_patterns:
-        print("{} | {}".format(network.get_output(pattern.input), pattern.expected_output))
+    with open(props.function_file, "w+") as f:
+        for pattern in all_patterns:
+            output = network.get_output(pattern.input)
+            f.write(";".join(str(x) for x in pattern.input))
+            f.write(";")
+            f.write(";".join(str(x) for x in output))
+            f.write(";")
+            f.write(";".join(str(x) for x in pattern.expected_output))
+            f.write("\n")
+            print("{} | {}".format(output, pattern.expected_output))
 
 
     # # Checking that everything works as intended

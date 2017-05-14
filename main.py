@@ -31,6 +31,8 @@ class NeuralNetwork:
         self.view_weights = False
         self.view_input = False
         self.view_outputs = False
+        self.save_weights = False
+        self.weights_file = ""
 
     def tanh(self, x):
         return np.tanh(x * props.beta)
@@ -140,6 +142,7 @@ class NeuralNetwork:
 
         for epoch in range(n):
             self.check_view_weights()
+            self.check_save_weights()
             self.calculate_error(epoch)
             # If error reached or Q was pressed, break
             if (self.sqr_error < props.error and epoch > 100) or self.stop:
@@ -165,8 +168,11 @@ class NeuralNetwork:
         print("Press Q and Enter to Quit.\n"
                  + "Press W to view weights.\n"
                  + "Press I to view input.\n"
-                 + "Press O to view outputs.\n")
+                 + "Press O to view outputs.\n"
+                 + "Press 'S <filename>' to save the weights.\n")
         while not network.stop:
+            while network.save_weights:
+                None    
             key = input()
             if key == "Q":
                 network.stop = True
@@ -176,13 +182,25 @@ class NeuralNetwork:
                 network.view_input = True
             if "O" in key:
                 network.view_outputs = True
+            if "S" in key:
+                network.save_weights = True
+                network.weights_file = key.split("S ")[1]
+            key = ""
+
+    def check_save_weights(self):
+        if self.save_weights:
+            aux = props.weights_file
+            props.weights_file = self.weights_file
+            self.write_weights(self.layers_weights)
+            props.weights_file = aux
+            self.save_weights = False
 
     def check_view_weights(self):
         if self.view_weights:
             for i in range(len(self.layers_weights)):
                 print("\nWeights Layers {} - {}:".format(i, i + 1))
                 self.print_weights(i)
-        self.view_weights = False
+            self.view_weights = False
 
     def print_weights(self, i):
         for row in self.layers_weights[i]:

@@ -157,7 +157,7 @@ class NeuralNetwork:
             self.check_save_weights()
             self.calculate_error(epoch)
             # If error reached or Q was pressed, break
-            if (self.sqr_error < props.error and epoch > 100) or self.stop:
+            if ((self.sqr_error < props.error or abs(delta_error) < props.delta_error) and epoch > 100) or self.stop:
                 break
             self.reset_error_counters()
             self.run_epoch(g, dg)
@@ -290,8 +290,8 @@ class NeuralNetwork:
         if self.view_outputs:
             for i in range(len(outputs)):
                 if i == len(outputs) - 1:
-                    output = o = [self.denorm_output(o_val) for o_val in outputs[i]]
-                    print("\nLayer {} output (denorm): {}".format(i, np.round(outputs[i], 5)))
+                    output = [self.denorm_output(o_val) for o_val in outputs[i]]
+                    print("\nLayer {} output (denorm): {}".format(i, np.round(output, 5)))
                 elif i >= 1:
                     print("\nLayer {} output: {}".format(i, np.round(outputs[i], 5)))
             self.view_outputs = False
@@ -313,7 +313,7 @@ class NeuralNetwork:
         error = 0
         for pattern in self.test_patterns:
             output = self.get_outputs(pattern.input, self.get_g())[-1]
-            error = sum(np.power(np.subtract(pattern.expected_output, output), 2))
+            error += sum(np.power(np.subtract(pattern.expected_output, output), 2))
         return error / (2 * len(self.test_patterns))
 
     def get_output(self, pattern):

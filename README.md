@@ -35,6 +35,7 @@ El archivo de configuración es config.properties. Los campos son los siguientes
 sizes: Arreglo con el tamaño de las capas ocultas. Ej: [3, 5]
 
 [Error]
+delta_error: Diferencia de error entre dos épocas que se debe alcanzar para concluir que se alcanzó un equilibrio.
 error: Error al que se debe alcanzar con los patrones de entrenamiento para finalizar el aprendizaje.
 max_epochs: Máxima cantidad de épocas a correr.
 error_freq: Frecuencia/Cantidad de épocas a correr antes de calcular los errores.

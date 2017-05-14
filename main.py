@@ -8,7 +8,6 @@ from functools import reduce
 from properties import Properties
 
 
-stop = False
 props = Properties("config.properties")
 
 
@@ -27,6 +26,11 @@ class NeuralNetwork:
         self.sqr_error = 0
         self.training_errors = []
         self.test_errors = []
+
+        self.stop = False
+        self.view_weights = False
+        self.view_input = False
+        self.view_outputs = False
 
     def tanh(self, x):
         return np.tanh(x * props.beta)
@@ -126,17 +130,19 @@ class NeuralNetwork:
         return self.d_sigmoid if props.function_type == "sigmoid" else self.d_tanh
 
     def learn_patterns(self, n):
-        global stop
-
         g = self.get_g()
         dg = self.get_dg()
 
         self.prev_delta_weights = [np.zeros(np.shape(layer)) for layer in self.layers_weights]
-        delta_error = 0        
+        delta_error = 0
+        thread = Thread(target = self.read_stdin, args = [self])
+        thread.start()
+
         for epoch in range(n):
+            self.check_view_weights()
             self.calculate_error(epoch)
             # If error reached or Q was pressed, break
-            if (self.sqr_error < props.error and epoch > 100) or stop:
+            if (self.sqr_error < props.error and epoch > 100) or self.stop:
                 break
             self.reset_error_counters()
             self.run_epoch(g, dg)         
@@ -153,6 +159,35 @@ class NeuralNetwork:
             self.write_weights(self.layers_weights)
 
         self.write_error() 
+
+    def read_stdin(self, args):
+        network = args
+        print("Press Q and Enter to Quit.\n"
+                 + "Press W to view weights.\n"
+                 + "Press I to view input.\n"
+                 + "Press O to view outputs.\n")
+        while not network.stop:
+            key = input()
+            if key == "Q":
+                network.stop = True
+            if "W" in key:
+                network.view_weights = True
+            if "I" in key:
+                network.view_input = True
+            if "O" in key:
+                network.view_outputs = True
+
+    def check_view_weights(self):
+        if self.view_weights:
+            for i in range(len(self.layers_weights)):
+                print("\nWeights Layers {} - {}:".format(i, i + 1))
+                self.print_weights(i)
+        self.view_weights = False
+
+    def print_weights(self, i):
+        for row in self.layers_weights[i]:
+            print(" ".join(str(x) for x in row.tolist()))
+            print("\n")
 
     def calculate_error(self, epoch):
         if epoch % props.error_freq == 0:
@@ -201,12 +236,26 @@ class NeuralNetwork:
     def run_epoch(self, g, dg):
         random.shuffle(self.input_patterns)
         for pattern in self.input_patterns:
+            self.check_view_input(pattern)
             self.learn_pattern(pattern, g, dg)
         self.sqr_error = self.sqr_error / (2 * len(self.input_patterns))
 
+    def check_view_input(self, pattern):
+        if self.view_input:
+            print("\nInput: {}".format(pattern.input))
+            self.view_input = False
+
     def learn_pattern(self, pattern, g, dg):
         outputs = self.get_outputs(pattern.input, g)
+        self.check_view_outputs(outputs)
         self.backpropagate(outputs, pattern.expected_output, g, dg)
+
+    def check_view_outputs(self, outputs):
+        if self.view_outputs:
+            for i in range(len(outputs)):
+                if i >= 1:
+                    print("\nLayer {} output: {}".format(i, outputs[i]));
+            self.view_outputs = False
 
     def get_outputs(self, input, g):
         outputs = [input]
@@ -274,13 +323,6 @@ def read_patterns(f):
         patterns.append(Pattern(input_values, expected_outputs_values))
     return patterns
 
-def stop_thread():
-    global stop
-
-    Quit = input('Press Q and Enter to Quit\n')
-    if Quit == "Q":
-        stop = True
-
 def main():
     props = Properties("config.properties")
 
@@ -299,10 +341,6 @@ def main():
 
     network = NeuralNetwork(train_patterns, test_patterns, props.etha)
     network.init_weights(layers_sizes)   
-
-    thread = Thread(target = stop_thread, args = [])
-    thread.start()
-
     network.learn_patterns(props.max_epochs)
 
     all_patterns = []

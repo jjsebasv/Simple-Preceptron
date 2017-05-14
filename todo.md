@@ -28,8 +28,8 @@
 * ~Poder elegir la funcion de activacion (`config.properties`)~
 * ~Poder agregar una última capa lineal~
 
-* Inicializar pesos adecuadamente
-  * Actualizar el README.md
+* ~Inicializar pesos adecuadamente~
+  * ~Actualizar el README.md~
   *  ~reconmendado: `sigma(m) = m ^ (-1/2)`~
 
 * ~Poder configuar la frecuencia con la que se calcula el error (cada cuantas epocas)~

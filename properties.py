@@ -7,6 +7,7 @@ class Properties:
 		configParser = configparser.RawConfigParser()
 		configParser.read(filename)
 		self.error = float(configParser.get('Error', 'error'))
+		self.delta_error = float(configParser.get('Error', 'delta_error'))
 		self.error_freq = float(configParser.get('Error', 'error_freq'))
 		self.error_file = configParser.get('Error', 'file')
 		self.max_epochs = int(configParser.get('Error', 'max_epochs'))

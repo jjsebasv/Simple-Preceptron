@@ -5,52 +5,52 @@ import plotly.offline as offline
 import plotly.graph_objs as go
 import pandas as pd
 import pdb
-df = pd.read_csv('points_1_1.csv', header=None, delimiter=';')
+df = pd.read_csv('points_1.csv', header=None, delimiter=';')
 df.head()
 
 data = []
 clusters = []
-colors = ['rgb(228,26,28)','rgb(55,126,184)','rgb(77,175,74)']
 
-for i in range(len(df)):
-    # color = colors[i]
+trace_1 = dict(
+    name = 'Valor obtenido',
+    x = df[0], y = df[1], z = df[2],
+    type = "scatter3d",
+    mode = 'markers',
+    marker = dict( size=5, color='#D73361', line=dict(width=0) ) )
 
-    # pdb.set_trace()
+trace_2 = dict(
+    name = 'Valor real',
+    x = df[0], y = df[1], z = df[3],
+    type = "scatter3d",
+    mode = 'markers',
+    marker = dict( size=5, color='#28CC9E', line=dict(width=0) ) )
 
-    x = df[0][i]
-    y = df[1][i]
-    z = df[2][i]
-
-    trace = dict(
-        x = x, y = y, z = z,
-        type = "scatter3d",
-        mode = 'markers',
-        marker = dict( size=3, line=dict(width=0) ) )
-    data.append( trace )
+data.append(trace_1)
+data.append(trace_2)
 
 layout = dict(
-    width=800,
-    height=550,
+    width=1200,
+    height=800,
     autosize=False,
-    title='Points 1 1',
+    title='points_1.csv',
     scene=dict(
         xaxis=dict(
             gridcolor='rgb(255, 255, 255)',
             zerolinecolor='rgb(255, 255, 255)',
             showbackground=True,
-            backgroundcolor='rgb(230, 230,230)'
+            backgroundcolor='#F4F4EC'
         ),
         yaxis=dict(
             gridcolor='rgb(255, 255, 255)',
             zerolinecolor='rgb(255, 255, 255)',
             showbackground=True,
-            backgroundcolor='rgb(230, 230,230)'
+            backgroundcolor='#F4F4EC'
         ),
         zaxis=dict(
             gridcolor='rgb(255, 255, 255)',
             zerolinecolor='rgb(255, 255, 255)',
             showbackground=True,
-            backgroundcolor='rgb(230, 230,230)'
+            backgroundcolor='#F4F4EC'
         ),
         aspectratio = dict( x=1, y=1, z=0.7 ),
         aspectmode = 'manual'

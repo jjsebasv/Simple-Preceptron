@@ -32,6 +32,7 @@ class NeuralNetwork:
         self.view_weights = False
         self.view_pattern = False
         self.view_outputs = False
+        self.view_epoch = False
         self.save_weights = False
         self.weights_file = ""
 
@@ -189,6 +190,7 @@ class NeuralNetwork:
                  + "Press W to view weights.\n"
                  + "Press I to view pattern.\n"
                  + "Press O to view outputs.\n"
+                 + "Press E to view epoch and errors.\n"
                  + "Press 'S <filename>' to save the weights.\n")
         while not network.stop and not network.finish:
             while network.save_weights:
@@ -204,6 +206,8 @@ class NeuralNetwork:
                     network.view_pattern = True
                 if "O" in key:
                     network.view_outputs = True
+                if "E" in key:
+                    network.view_epoch = True
                 if "S" in key:
                     network.save_weights = True
                     network.weights_file = key.split("S ")[1]
@@ -230,10 +234,11 @@ class NeuralNetwork:
             print(" ".join(str(np.round(x, 4)) for x in row.tolist()))
 
     def calculate_error(self, epoch):
-        if epoch % props.error_freq == 0:
+        if epoch % props.error_freq == 0 or self.view_epoch:
             self.training_errors.append(self.sqr_error)
             self.test_errors.append(self.get_test_error())
-            print("Epoch: {}, Training: {}, Test: {}".format(epoch, self.training_errors[-1], self.test_errors[-1]))
+            print("Epoch: {}, Training: {}, Test: {}, etha: {}".format(epoch, self.training_errors[-1], self.test_errors[-1], self.etha))
+            self.view_epoch = False
 
     def write_error(self):
         if props.error_file != None and props.error_file != "":
@@ -252,6 +257,10 @@ class NeuralNetwork:
     def adaptative_etha(self, delta_error, epoch):
         if props.use_adap_etha and epoch % props.epoch_freq == 0:
             self.etha += self.get_delta_etha(delta_error)
+            if delta_error > 0:
+                print(delta_error)
+                print(self.saved_weights)
+                print(props.undo_probability)
             if delta_error > 0 and random.random() <= props.undo_probability and self.saved_weights != None:
                 self.layers_weights = self.saved_weights
                 self.prev_delta_weights = [np.zeros(np.shape(layer)) for layer in self.layers_weights]

@@ -157,6 +157,7 @@ class NeuralNetwork:
         for epoch in range(n):
             self.check_view_weights()
             self.check_save_weights()
+            self.check_view_epoch(epoch)
             self.calculate_error(epoch)
             if abs(delta_error) < props.delta_error:
                 delta_error_count += 1
@@ -164,7 +165,6 @@ class NeuralNetwork:
                 delta_error_count = 0
             # If error reached or Q was pressed, break
             if ((self.sqr_error < props.error or delta_error_count > 10) and epoch > 100) or self.stop:
-                print(delta_error_count)
                 break
             self.reset_error_counters()
             self.run_epoch(g, dg)
@@ -186,12 +186,7 @@ class NeuralNetwork:
 
     def read_stdin(self, args):
         network = args
-        print("Press Q and Enter to Quit.\n"
-                 + "Press W to view weights.\n"
-                 + "Press I to view pattern.\n"
-                 + "Press O to view outputs.\n"
-                 + "Press E to view epoch and errors.\n"
-                 + "Press 'S <filename>' to save the weights.\n")
+        self.print_help()
         while not network.stop and not network.finish:
             while network.save_weights:
                 None    
@@ -211,8 +206,19 @@ class NeuralNetwork:
                 if "S" in key:
                     network.save_weights = True
                     network.weights_file = key.split("S ")[1]
+                if "?" in key:
+                    self.print_help()
                 key = ""
         print("Finished!")
+
+    def print_help(self):
+        print("Press Q and Enter to Quit.\n"
+             + "Press W to view weights.\n"
+             + "Press I to view pattern.\n"
+             + "Press O to view outputs.\n"
+             + "Press E to view epoch and errors.\n"
+             + "Press ? to view this help again.\n"
+             + "Press 'S <filename>' to save the weights.\n")
 
     def check_save_weights(self):
         if self.save_weights:
@@ -234,10 +240,15 @@ class NeuralNetwork:
             print(" ".join(str(np.round(x, 4)) for x in row.tolist()))
 
     def calculate_error(self, epoch):
-        if epoch % props.error_freq == 0 or self.view_epoch:
+        if epoch % props.error_freq == 0:
             self.training_errors.append(self.sqr_error)
             self.test_errors.append(self.get_test_error())
-            print("Epoch: {}, Training: {}, Test: {}, etha: {}".format(epoch, self.training_errors[-1], self.test_errors[-1], self.etha))
+            
+
+    def check_view_epoch(self, epoch):
+        if self.view_epoch:
+            print("Epoch: {}, Training: {}, Test: {}, Etha: {}".format(
+                epoch, np.round(self.sqr_error, 5), np.round(self.prev_sqr_error, 5), np.round(self.etha, 6)))
             self.view_epoch = False
 
     def write_error(self):
@@ -257,10 +268,6 @@ class NeuralNetwork:
     def adaptative_etha(self, delta_error, epoch):
         if props.use_adap_etha and epoch % props.epoch_freq == 0:
             self.etha += self.get_delta_etha(delta_error)
-            if delta_error > 0:
-                print(delta_error)
-                print(self.saved_weights)
-                print(props.undo_probability)
             if delta_error > 0 and random.random() <= props.undo_probability and self.saved_weights != None:
                 self.layers_weights = self.saved_weights
                 self.prev_delta_weights = [np.zeros(np.shape(layer)) for layer in self.layers_weights]
@@ -401,6 +408,7 @@ def main():
     with open(props.filename) as f:
         all_patterns = read_patterns(f)
 
+    print("Output | Expected output")
     with open(props.function_file, "w+") as f:
         for pattern in all_patterns:
             output = network.get_output(pattern.input)
@@ -411,31 +419,6 @@ def main():
             f.write(";".join(str(x) for x in pattern.expected_output))
             f.write("\n")
             print("{} | {}".format(output, pattern.expected_output))
-
-
-    # # Checking that everything works as intended
-    # if input_size == 2:
-    #     print(network.get_output([1, 1]))
-    #     print(network.get_output([1, -1]))
-    #     print(network.get_output([-1, 1]))
-    #     print(network.get_output([-1, -1]))
-    # else:
-    #     print(network.get_output([0])) #~0
-    #     print(network.get_output([0.1])) #~1
-    #     print(network.get_output([0.3])) #2
-    #     print(network.get_output([0.4])) #5
-    #     print(network.get_output([0.45])) #2
-    #     print(network.get_output([0.475])) #~1
-    #     print(network.get_output([0.5])) #0
-    #     print(network.get_output([0.55])) #3
-    #     print(network.get_output([0.6])) #~20
-    #     print(network.get_output([0.65])) #~28
-    #     print(network.get_output([0.7])) #33
-    #     print(network.get_output([0.75])) #~40
-    #     print(network.get_output([0.85])) #~45
-    #     print(network.get_output([0.8])) #50
-    #     print(network.get_output([0.9])) #78
-    #     print(network.get_output([1])) #100
 
 
 if __name__ == "__main__":

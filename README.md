@@ -1,36 +1,58 @@
-Para correr la red, es necesario tener instalado configparser y numpy.
+Para correr la red, es necesario tener instalado `configparser` y `numpy`. Recomendamos el uso de `virtualenv` para crear un ambiente virtual e instalar las dependencias dentro.
 
-Para crear los archivos de entrenamiento y testeo a partir de un archivo con datos, se debe setear el archivo de configuración y luego correr: separateInput.py
-Para aprender la red, se debe setear el archivo de configuración y correr: main.py
+### Archivos de entrenamiento
+Para crear los archivos de entrenamiento y testeo a partir de un archivo con datos, se debe setear el archivo de configuración `config.properties` y luego correr:
+```bash
+python separateInput.py
+```
+
+### Aprendizaje de la red
+Para aprender la red, se debe setear el archivo de configuración `config.properties` y correr:
+```bash
+python main.py
+```
 
 Para interactuar con la red mientras aprende, se pueden apretar las siguientes teclas seguidas de enter:
 
+```
 Q - Da por terminado el aprendizaje.
 I - Visualiza el patrón que se esté por correr.
 O - Visualiza los outputs para el patrón que se esté corriendo e las distintas capas. El de la capa oculta se encuentra desnormalizado, y por ello se indica "(denorm)".
 W - Visualiza los pesos de las distintas capas de la red.
-S <filename> - Guarda los pesos de la red en el archivo <filename>.
+S filename - Guarda los pesos de la red en el archivo <filename>.
+```
 
 Ejemplos:
 
-1. Q
+1.
+	```bash
+	Q
 	* Termina el aprendizaje de la red.
-2. IO
-	>: Input: [-2.4522  1.8947], Exp. Output: [-0.7241]
-	>: Layer 1 output: [ 0.2283  -0.47306  0.66556]
-	>: Layer 2 output (denorm): [ 0.71793]
-3. WS pesos_de_red.txt
-	>: Weights Layers 0 - 1:
-	>: -0.2161 0.1687 0.1108
-	>: -6.3118 3.8236 -0.3486
-	>: -0.7065 0.5101 0.117
-	>:
-	>: Weights Layers 1 - 2:
-	>: 0.1368 2.0862 0.0817
+	$>
+	```
+2.
+	```
+	IO
+	Input: [-2.4522  1.8947], Exp. Output: [-0.7241]
+	Layer 1 output: [ 0.2283  -0.47306  0.66556]
+	Layer 2 output (denorm): [ 0.71793]
+	```
+3.
+	```
+	WS pesos_de_red.txt
+	Weights Layers 0 - 1:
+	-0.2161 0.1687 0.1108
+	-6.3118 3.8236 -0.3486
+	-0.7065 0.5101 0.117
+
+	Weights Layers 1 - 2:
+	0.1368 2.0862 0.0817
 	* Guarda dichos pesos en el archivo pesos_de_red.txt
+	```
 
-El archivo de configuración es config.properties. Los campos son los siguientes:
+El archivo de configuración es `config.properties`. Los campos son los siguientes:
 
+```bash
 [Hidden Layers]
 sizes: Arreglo con el tamaño de las capas ocultas. Ej: [3, 5]
 
@@ -49,7 +71,7 @@ etha: Valor inicial de etha (learning rate).
 non_zero_dg: Suma 0.1 a la derivada si se setea en true.
 momentum: Utiliza la variación momentum si se setea en true.
 adap_etha: Utiliza la variación de etha adaptativo si se setea en true.
-momentum_alpha: Alpha de la función de momentum. 
+momentum_alpha: Alpha de la función de momentum.
 undo_probability: Probabilidad de deshacer el aprendizaje si con el último etha dio un error mayor (Sólo afecta si se usa etha adaptativo).
 etha_a: Parámetro "a" de etha adaptativo.
 etha_b: Parámetro "b" de etha adaptativo.
@@ -70,3 +92,4 @@ sigma: Utiliza una distribución uniforme para los pesos que entran a cada neuro
 
 [Function]
 file: Archivo donde se guardan los inputs, outputs obtenidos con la red, y outputs esperados para todos los patrones al finalizar el aprendizaje.
+```

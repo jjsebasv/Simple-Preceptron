@@ -22,8 +22,8 @@ y = sGrid
 z_1 = griddata((df[0], df[1]), df[2], (tGrid, sGrid), method='cubic')
 z_2 = griddata((df[0], df[1]), df[3], (tGrid, sGrid), method='cubic')
 
-surface_1 = go.Surface(x=x, y=y, z=z_1)
-surface_2 = go.Surface(x=x, y=y, z=z_2)
+surface_1 = go.Surface(x=x, y=y, z=z_1, colorscale='Greens')
+surface_2 = go.Surface(x=x, y=y, z=z_2, colorscale='Reds')
 
 data.append(surface_1)
 data.append(surface_2)

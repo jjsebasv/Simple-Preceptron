@@ -60,11 +60,13 @@ for fname in glob.glob(path):
         name='Resultado deseado',
         x=x, y=y, z=z_1,
         colorscale=blues,
+        opacity=0.9,
         showscale=False)
     surface_2 = go.Surface(
         name='Resultado obtenido',
         x=x, y=y, z=z_2,
         colorscale=oranges,
+        opacity=0.7,
         showscale=False,
         showlegend=True)
 
@@ -73,7 +75,7 @@ for fname in glob.glob(path):
 
     layout = go.Layout(
         width=1200,
-        height=800,
+        height=700,
         autosize=False,
         title=fname,
         showlegend=True,
@@ -101,4 +103,4 @@ for fname in glob.glob(path):
 
 
     fig = go.Figure(data=data, layout=layout)
-    offline.plot(fig, filename='surface_plots/' + plot_name + '.html')
+    offline.plot(fig, filename='surface_plots/' + plot_name + '.html', auto_open=False)

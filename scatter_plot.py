@@ -5,7 +5,7 @@ import plotly.offline as offline
 import plotly.graph_objs as go
 import pandas as pd
 import pdb
-df = pd.read_csv('points_1.csv', header=None, delimiter=';')
+df = pd.read_csv('points/points_1_1.csv', header=None, delimiter=';')
 df.head()
 
 data = []

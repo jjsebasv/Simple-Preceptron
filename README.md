@@ -1,3 +1,5 @@
+# Redes Neuronales
+
 Para correr la red, es necesario tener instalado `configparser` y `numpy`. Recomendamos el uso de `virtualenv` para crear un ambiente virtual e instalar las dependencias dentro.
 
 ### Archivos de entrenamiento
@@ -24,21 +26,18 @@ S filename - Guarda los pesos de la red en el archivo <filename>.
 
 Ejemplos:
 
-1.
-	```bash
+- ```bash
 	Q
 	* Termina el aprendizaje de la red.
 	$>
 	```
-2.
-	```
+- ```
 	IO
 	Input: [-2.4522  1.8947], Exp. Output: [-0.7241]
 	Layer 1 output: [ 0.2283  -0.47306  0.66556]
 	Layer 2 output (denorm): [ 0.71793]
 	```
-3.
-	```
+- ```
 	WS pesos_de_red.txt
 	Weights Layers 0 - 1:
 	-0.2161 0.1687 0.1108
@@ -50,6 +49,8 @@ Ejemplos:
 	* Guarda dichos pesos en el archivo pesos_de_red.txt
 	```
 
+
+### Archivo de configuración
 El archivo de configuración es `config.properties`. Los campos son los siguientes:
 
 ```bash

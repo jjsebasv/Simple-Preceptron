@@ -6,6 +6,7 @@ import random
 from threading import Thread
 from functools import reduce
 from properties import Properties
+from surface_plot import plot_graph
 import sys, select
 
 
@@ -153,6 +154,7 @@ class NeuralNetwork:
         self.finish = False
         thread = Thread(target = self.read_stdin, args = [self])
         thread.start()
+
 
         for epoch in range(n):
             self.check_view_weights()
@@ -366,6 +368,7 @@ class NeuralNetwork:
             #Convert arrays into vector-like matrices
             V = np.array(V).reshape(len(V), 1)
             small_delta[i] = np.array(small_delta[i]).reshape(len(small_delta[i]), 1)
+            # Delta Mayus
             layer_delta_weights = np.multiply(self.etha, np.dot(small_delta[i], np.transpose(V)))
             self.delta_weights[i] = np.add(self.delta_weights[i], layer_delta_weights)
 
@@ -388,6 +391,8 @@ def main():
     props = Properties("config.properties")
 
     train_patterns = []
+
+    # Open training file
     with open(props.training_file) as f:
         train_patterns = read_patterns(f)
 
@@ -419,6 +424,7 @@ def main():
             f.write(";".join(str(x) for x in pattern.expected_output))
             f.write("\n")
             print("{} | {}".format(output, pattern.expected_output))
+    plot_graph()
 
 
 if __name__ == "__main__":

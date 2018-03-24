@@ -1,6 +1,6 @@
 # Redes Neuronales
 
-Para correr la red, es necesario tener instalado `configparser` y `numpy`. Recomendamos el uso de `virtualenv` para crear un ambiente virtual e instalar las dependencias dentro.
+Para correr la red, es necesario tener instalado `pandas`, `plotly`, `configparser` y `numpy`. Recomendamos el uso de `virtualenv` para crear un ambiente virtual e instalar las dependencias dentro.
 
 ### Archivos de entrenamiento
 Para crear los archivos de entrenamiento y testeo a partir de un archivo con datos, se debe setear el archivo de configuración `config.properties` y luego correr:
